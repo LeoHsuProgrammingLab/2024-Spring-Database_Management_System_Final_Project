@@ -1,0 +1,27 @@
+Title,Topic,Arxiv Link,Other Link
+"AceKG: A Large-scale Knowledge Graph
+for Academic Data Mining",Knowledge Graph,https://arxiv.org/pdf/1807.08484,AceKG: A Large-scale Knowledge Graph for Academic Data Mining
+Knowledge Graphs Querying,Knowledge Graph,https://arxiv.org/abs/2305.14485,Knowledge Graphs Querying
+SQL-to-Schema Enhances Schema Linking in Text-to-SQL,,https://arxiv.org/abs/2405.09593,
+Color: A Framework for Applying Graph Coloring to Subgraph Cardinality Estimation,,https://arxiv.org/abs/2405.06767,
+"A Comprehensive Survey on Vector Database:
+Storage and Retrieval Technique, Challenge",,https://arxiv.org/pdf/2310.11703,
+Database Meets Deep Learning: Challenges and Opportunities,,https://arxiv.org/abs/1906.08986,
+Survey of Vector Database Management Systems,,https://arxiv.org/abs/2310.14021,
+When Large Language Models Meet Vector Databases: A Survey,,https://arxiv.org/abs/2402.01763,
+A1: A Distributed In-Memory Graph Database,Distributed,https://arxiv.org/abs/2004.05712,
+Survey the storage systems used in HPC and BDA ecosystems,,https://arxiv.org/abs/2112.12142,
+"CERT: Finding Performance Issues in Database Systems Through
+the Lens of Cardinality Estimation",,https://arxiv.org/pdf/2306.00355,
+Testing Database Engines via Query Plan Guidance,,https://arxiv.org/pdf/2312.17510,
+Leveraging Neo4j and deep learning for traffic congestion simulation & optimization,,https://arxiv.org/abs/2304.00192,
+"Performance Comparison Analysis of ArangoDB, MySQL, and Neo4j: An Experimental Study of Querying Connected Data",,https://arxiv.org/abs/2401.17482,
+Cryptanalysis of the SIMON Cypher Using Neo4j,,https://arxiv.org/abs/2405.04735,
+GLL-based Context-Free Path Querying for Neo4j,,https://arxiv.org/abs/2312.11925,
+Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks,,https://arxiv.org/abs/2005.11401,
+Retrieval-Augmented Generation for Large Language Models: A Survey,,https://arxiv.org/abs/2312.10997,
+A Survey on RAG Meets LLMs: Towards Retrieval-Augmented Large Language Models,,https://arxiv.org/abs/2405.06211,
+Adaptive-RAG: Learning to Adapt Retrieval-Augmented Large Language Models through Question Complexity,,https://arxiv.org/abs/2403.14403,
+Retrieval-Augmented Thought Process as Sequential Decision Making,,https://arxiv.org/pdf/2402.07812,
+An Ontology for Satellite Databases,,https://arxiv.org/abs/1801.02940,
+Context-based Ontology Modelling for Database: Enabling ChatGPT for Semantic Database Management,,https://arxiv.org/abs/2303.07351,

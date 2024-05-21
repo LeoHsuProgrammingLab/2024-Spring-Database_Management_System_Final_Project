@@ -83,19 +83,20 @@ def find_bbl_refs(files):
 if __name__ == "__main__":
 
     target=input("input the paper index: ").strip()
+    # ex: https://arxiv.org/abs/2405.12117
 
     url = f"https://arxiv.org/src/{target}"
     url2= f"https://arxiv.org/pdf/{target}"
-    download_path = f"./paper/{target}.tar.gz"
+    tar_gz_path = f"./paper/{target}.tar.gz"
     pdf_path = f"./paper/{target}/{target}.pdf"
     save_path = f"./paper/{target}"
     ref=[]
 
     if not os.path.exists(save_path):    
-        download_file(url, download_path)
-        unzip_tar_gz(download_path, save_path)
+        download_file(url, tar_gz_path)
+        unzip_tar_gz(tar_gz_path, save_path)
         download_file(url2, pdf_path)
-        remove_file(download_path)
+        remove_file(tar_gz_path)
         
     files1 = find_bib_files(save_path)
     files2 = find_bbl_files(save_path)
