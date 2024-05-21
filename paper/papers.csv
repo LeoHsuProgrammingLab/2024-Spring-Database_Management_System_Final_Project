@@ -14,7 +14,6 @@ Survey the storage systems used in HPC and BDA ecosystems,,https://arxiv.org/abs
 "CERT: Finding Performance Issues in Database Systems Through
 the Lens of Cardinality Estimation",,https://arxiv.org/pdf/2306.00355,
 Testing Database Engines via Query Plan Guidance,,https://arxiv.org/pdf/2312.17510,
-Leveraging Neo4j and deep learning for traffic congestion simulation & optimization,,https://arxiv.org/abs/2304.00192,
 "Performance Comparison Analysis of ArangoDB, MySQL, and Neo4j: An Experimental Study of Querying Connected Data",,https://arxiv.org/abs/2401.17482,
 Cryptanalysis of the SIMON Cypher Using Neo4j,,https://arxiv.org/abs/2405.04735,
 GLL-based Context-Free Path Querying for Neo4j,,https://arxiv.org/abs/2312.11925,
