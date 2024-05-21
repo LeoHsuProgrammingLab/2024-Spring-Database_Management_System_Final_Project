@@ -1,0 +1,341 @@
+\documentclass[10pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=blue, filecolor=magenta, urlcolor=cyan,}
+\urlstyle{same}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage[version=4]{mhchem}
+\usepackage{stmaryrd}
+\usepackage{graphicx}
+\usepackage[export]{adjustbox}
+\graphicspath{ {./images/} }
+
+\title{AceKG: A Large-scale Knowledge Graph for Academic Data Mining }
+
+
+\author{Ruijie Wang, Yuchen Yan, Jialu Wang, Yuting Jia, Ye Zhang, Weinan Zhang, Xinbing Wang\\
+Shanghai Jiao Tong University, Shanghai, China\\
+\{wjerry5,wnzhang,xwang8\}@stu.edu.cn}
+\date{}
+
+
+%New command to display footnote whose markers will always be hidden
+\let\svthefootnote\thefootnote
+\newcommand\blfootnotetext[1]{%
+  \let\thefootnote\relax\footnote{#1}%
+  \addtocounter{footnote}{-1}%
+  \let\thefootnote\svthefootnote%
+}
+
+%Overriding the \footnotetext command to hide the marker if its value is `0`
+\let\svfootnotetext\footnotetext
+\renewcommand\footnotetext[2][?]{%
+  \if\relax#1\relax%
+    \ifnum\value{footnote}=0\blfootnotetext{#2}\else\svfootnotetext{#2}\fi%
+  \else%
+    \if?#1\ifnum\value{footnote}=0\blfootnotetext{#2}\else\svfootnotetext{#2}\fi%
+    \else\svfootnotetext[#1]{#2}\fi%
+  \fi
+}
+
+\begin{document}
+\maketitle
+
+
+\begin{abstract}
+Most existing knowledge graphs (KGs) in academic domains suffer from problems of insufficient multi-relational information, name ambiguity and improper data format for large-scale machine processing. In this paper, we present AceKG, a new large-scale KG in academic domain. AceKG not only provides clean academic information, but also offers a large-scale benchmark dataset for researchers to conduct challenging data mining projects including link prediction, community detection and scholar classification. Specifically, AceKG describes 3.13 billion triples of academic facts based on a consistent ontology, including necessary properties of papers, authors, fields of study, venues and institutes, as well as the relations among them. To enrich the proposed knowledge graph, we also perform entity alignment with existing databases and rulebased inference. Based on AceKG, we conduct experiments of three typical academic data mining tasks and evaluate several state-ofthe-art knowledge embedding and network representation learning approaches on the benchmark datasets built from AceKG. Finally, we discuss promising research directions that benefit from AceKG.
+\end{abstract}
+
+\section*{KEYWORDS}
+Knowledge Graph, Benchmarking, Data Mining
+
+\section*{ACM Reference Format:}
+Ruijie Wang, Yuchen Yan, Jialu Wang, Yuting Jia, Ye Zhang, Weinan Zhang, Xinbing Wang. 2018. AceKG: A Large-scale Knowledge Graph, for Academic Data Mining. In The 27th ACM International Conference on Information and Knowledge Management (CIKM '18), October 22-26, 2018, Torino, Italy, Jennifer B. Sartor, Theo D'Hondt, and Wolfgang De Meuter (Eds.). ACM, New York, NY, USA, 4 pages. \href{https://doi.org/10.1145/3269206.3269252}{https://doi.org/10.1145/3269206.3269252}
+
+\section*{1 INTRODUCTION}
+Knowledge graphs have become very crucial resources to support many AI related applications, such as graph analytics, Q\&A system, web search, etc. A knowledge graph, which describes and stores facts as triples, is a multi-relational graph consisting of entities as nodes and relations as different types of edges. Nowadays, many companies and research teams are trying to organize the knowledge in their domain into a machine-readable knowledge graph, e.g., YAGO [6], NELL [9], DBpedia [7], and DeepDive [3]. Although these large-scale knowledge graphs have collected tremendous
+\footnotetext{Permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. Copyrights for components of this work owned by others than ACM must be honored. Abstracting with credit is permitted. To copy otherwise, or republish to post on servers or to redistribute to lists, requires prior specific permission and/or a fee. Request permissions from \href{mailto:permissions@acm.org}{permissions@acm.org}.
+
+CIKM '18, October 22-26, 2018, Torino, Italy
+
+(9) 2018 Association for Computing Machinery.
+
+ACM ISBN 978-1-4503-6014-2/18/10.. $\$ 15.00$
+
+\href{https://doi.org/10.1145/3269206.3269252}{https://doi.org/10.1145/3269206.3269252}
+}
+
+amount of factual information about the world, many fields still remain to be covered.
+
+With information of papers, scholars, institutes, venues, fields of study and other useful entities, data mining on academic networks aims to discover hidden relations and to find semantic-based information. Several academic databases or knowledge graphs have been built with structured academic data $[12,13,16]$. The public academic knowledge graphs can provide scholars with convincing academic information, and offer large-scale benchmark datasets for researchers to conduct data mining projects.
+
+However, there are some limitations in existing databases or knowledge graphs. First, most of existing works provide homogeneous academic graphs, while relations among different types of entities remaining lost $[12,16]$. Second, some databases only concentrate on one specific field of study, limiting the projects which aim at discovering cross-field knowledge [12]. Third, synonymy and ambiguity are also the restrictions for knowledge mining [13]. Allocating the unique IDs to the entities is the necessary solution, but some databases use the names of the entities as their IDs directly.
+
+In this paper, we propose Academic Knowledge Graph (AceKG ${ }^{1}$ ), an academic semantic network, which describes 3.13 billion triples of academic facts based on a consistent ontology, including commonly used properties of papers, authors, fields of study, venues, institutes and relations among them. Apart from the knowledge graph, we also perform entity alignment with the existing KGs and some rule-based inferences to further extend it and make it linked with other KGs in the linked open data cloud. Based on AceKG, we further evaluate several state-of-the-art knowledge embedding and network representation learning approaches. Finally we discuss several potential research directions that benefit from AceKG.
+
+Compared with other existing open academic KGs or datasets, AceKG has the following advantages.
+
+(1) AceKG offers a heterogeneous academic information network, which supports researchers or engineers to conduct various academic data mining experiments.
+
+(2) AceKG is sufficiently large ( 3.13 billion triples with nearly $100 \mathrm{G}$ disk size) to cover most instances in the academic ontology, which makes the experiments based on AceKG more convincing and of practical value.
+
+(3) AceKG provides the entity mapping to computer science databases including ACM, IEEE and DBLP, which helps researchers integrate data from multiple databases together to mine knowledge.
+
+(4) AceKG is fully organized in structured triples, which is machinereadable and easy to process.
+
+\section*{2 THE KNOWLEDGE GRAPH}
+The AceKG dataset can be freely accessed online. All the data are collected from Acemap 2 .
+\footnotetext{${ }^{1}$ \href{http://acemap.sjtu.edu.cn/app/AceKG}{http://acemap.sjtu.edu.cn/app/AceKG}
+
+${ }^{2}$ \href{http://acemap.sjtu.edu.cn}{http://acemap.sjtu.edu.cn}
+}
+
+\begin{center}
+\includegraphics[max width=\textwidth]{2024_05_13_b5d231923fddd660ff9eg-2(1)}
+\end{center}
+
+Figure 1: An overview of AceKG Ontology.
+
+Table 1: Triple statistics of AceKG.
+
+\begin{center}
+\begin{tabular}{|cr|cr|}
+\hline
+Class & Number & Class & Number \\
+\hline
+Paper & $61,704,089$ & Institute & 19,843 \\
+Author & $52,498,428$ & Field & 50,233 \\
+Journal & 21,744 & Conference & 1,278 \\
+\hline
+Total Entities & $114,295,615$ & Total Relations & $3,127,145,831$ \\
+\hline
+\end{tabular}
+\end{center}
+
+Table 2: Statistics of node mapping.
+
+\begin{center}
+\begin{tabular}{|c|ccc|}
+\hline
+Database & IEEE & ACM & DBLP \\
+\hline
+Mapping Number & $2,332,358$ & $1,912,535$ & $2,274,773$ \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection*{2.1 Ontology}
+All objects (e.g., papers, institutes, authors) are represented as entities in the AceKG. Two entities can stand in a relation. Commonly used attributes of each entities including numbers, dates, strings and other literals are represented as well. Similar entities are grouped into classes. In total, AceKG defines 5 classes of academic entities: Papers, Authors, Fields of study, Venues and Institutes. And the facts including the frequently used properties of each entities and the relations between the entities are described as triples in the knowledge graph. The ontology of AceKG is shown in Figure 1.
+
+To deal with synonymy and ambiguity, each entity in defined classes are allocated with a URI. For example, ace:7E7A3A69 and ace: 7E0D6766 are two scholars having the same name: Jiawei Han, one of whom is the influential data mining scientist. Compared with the datasets which use entity names to represent entities directly, AceKG can avoid mistakes caused by synonymy and ambiguity,
+
+The statistics of AceKG are shown in Table 1. All the facts are represented as subject-predicate-object triples (SPO triples). And we release the Turtle format AceKG online. It can be queried by Apache Jena framework ${ }^{3}$ with SPARQL easily.
+
+\subsection*{2.2 Entity alignment}
+In order to make AceKG more connected and comprehensive, we map a large part of papers in computer science of AceKG to the papers stored in IEEE, ACM and DBLP databases. All the latest papers in those three databases have been aligned with AceKG . Some mapping statistics are shown in Table 2. The knowledge graph is updated with the latest academic information periodically,
+
+\subsection*{2.3 Inference}
+Rule-based inference on knowledge graph is a typical but critical way to enrich the knowledge graph. The selected inference rules
+\footnotetext{${ }^{3}$ \href{https://jena.apache.org}{https://jena.apache.org}
+}
+
+\begin{center}
+\includegraphics[max width=\textwidth]{2024_05_13_b5d231923fddd660ff9eg-2}
+\end{center}
+
+Figure 2: Example of rule-based inference. The dotted arrows are inferred predicates.
+
+that we design are shown in Figure 2. With those inference rules, we can define the new relations on AceKG, which provides more comprehensive ground truth.
+
+\section*{3 KNOWLEDGE EMBEDDING}
+In this section, we will evaluate several state-of-the-art approaches for knowledge embedding using AceKG.
+
+\subsection*{3.1 Task Definition}
+Given a set $S$ of triples $(h, r, t)$ composed of two entities $h, t \in E$ and a relation $r \in R$, knowledge embedding maps each entity to a $k$-dimensional vector in the embedding space, and defines a scoring function to evaluate the plausibility of the triple $(h, r, t)$ in the knowledge graph. We study and evaluate related methods on link prediction problem defined in [2]: given one of the entities and the relation in a latent triple, the task is to predict the other missed entity. The commonly used benchmark datasets are FB15K and WN18, which are extracted from Freebase [1] and WordNet [8]. We construct a new benchmark dataset (denoted as AK18K in the rest of this section) extracted from AceKG for knowledge embedding. We will show how it differs from FB15K and WN18 in Section 3.2. We compare the following algorithms in our experiments: TransE [2], TransH [18], DistMult [19], ComplEx [17], HolE [10].
+
+\subsection*{3.2 Experimental Setup}
+To extract AK18K from AceKG, we first select 68 critical international venues (conferences and journals) and influential papers published on them. Then we add the triples of authors, fields and institutes. Finally, the train/valid/test datasets are divided randomly.
+
+Table 3 shows the statistics of the WN18, FB15K and AK18K. AK18K is sparser than FB15K but denser than WN18 (indicated by the value of \#Trip/\#E), and it provides only 7 types of relations. We will evaluate the models' scalability on the knowledge graph which
+
+Table 3: Datasets used in knowledge embedding.
+
+\begin{center}
+\begin{tabular}{c|ccccc}
+\hline
+Dataset & \#R & \#E & \multicolumn{1}{c}{\#Trip. (Train/ Valid/ Test)} &  &  \\
+\hline
+WN18 & 18 & 40,943 & 141,442 & 5,000 & 5,000 \\
+FB15K & 1,345 & 14,951 & 483,142 & 50,000 & 59,071 \\
+AK18K & 7 & 18,464 & 130,265 & 7,429 & 7,336 \\
+\hline
+\end{tabular}
+\end{center}
+
+Table 4: Results of link prediction task on AK18K.
+
+\begin{center}
+\begin{tabular}{lcccccc}
+\hline
+ & \multicolumn{3}{c}{MRR} &  & \multicolumn{3}{c}{Hits at} \\
+\cline { 2 - 3 }\cline { 5 - 7 }
+Model & Raw & Filter &  & 1 & 3 & 10 &  \\
+\hline
+TransE & 0.358 & 0.719 &  & 62.7 & 82.5 & $\mathbf{8 9 . 2}$ &  \\
+TransH & 0.315 & 0.701 &  & 61.0 & 77.2 & 84.6 &  \\
+DistMult & 0.432 & 0.749 &  & 68.7 & 79.5 & 86.1 &  \\
+HolE & $\mathbf{0 . 4 8 2}$ & $\mathbf{0 . 8 6 4}$ &  & $\mathbf{8 3 . 8}$ & $\mathbf{8 7 . 1}$ & 88.2 &  \\
+ComplEx & 0.440 & 0.817 &  & 75.4 & 85.8 & 89.0 &  \\
+\hline
+\end{tabular}
+\end{center}
+
+Table note: Filtered and Raw Mean Reciprocal Rank (MRR) and Hits $@\{1,3,10\}$ for the models tested on the AK18K dataset. Hits@ $\{1,3,10\}$ metrics are filtered. Filtered metrics means removing from the test list the other triples that appear in the dataset while evaluation.
+
+has simple relation structure but tremendous amount of entities. The code we used is based on the OpenKE [5], an open-source framework for knowledge embedding.
+
+\subsection*{3.3 Evaluation Results}
+We show the link prediction results based on knowledge embedding in Table 4. The reported results are produced with the best set of hyper-parameters after the grid searches reported in the papers. The compared state-of-the-art models can be divided into two categories: (i) translational models (TransE, TransH); (ii) compositional models (DistMult, HolE, ComplEx). TransE outperforms all counterparts on Hits@10 as $89.2 \%$. Although $94.4 \%$ of relations in our knowledge graph are many-to-many, which works for TransH, TransE shows its advantages on modeling sparse and simple knowledge graph, while TransH fails to achieve better results. The reason may be the number of relationship types is only 7 , which is small. According to [18], TransH should work better than TransE on many-to-many triples On the other hand, HolE and ComplEx achieve the most significant performances on the other metrics, especially on Hits@1 ( $83.8 \%$ and $75.4 \%)$ and on filtered MRR ( 0.482 and 0.440 ), which confirms their advantages on modeling antisymmetric relations because all of our relations are antisymmetric, such as field\_is\_part\_of and paper\_is\_written\_by.
+
+Compared with the experiment results on FB15K and WN18 reported in [10], performances evaluated using AK18K are noticeably different. First, results on AK18K are lower than those on WN18 but higher than those on FB15K. It is caused by the limited relation types and large amount of potential entities per relation. Some relation such as paper\_is\_in\_field can have thousands of possible objects per triple, limiting the prediction performance. Second, the performance gap between two model categories grows more pronounced as the knowledge graph becomes more complicated, which indicates the translational models with simple assumptions may not model the complicated graph well.
+
+\section*{4 NETWORK REPRESENTATION LEARNING}
+In this section, we will evaluate several state-of-the-art approaches for network representation learning (NRL) on AceKG.\\
+Table 5: Datasets used in network representation learning.
+
+\begin{center}
+\begin{tabular}{c|cccc}
+\hline
+Dataset & \#Paper & \#Author & \#Venue & \#Edge \\
+\hline
+FOS\_Biology & $1,211,664$ & $2,169,820$ & 13,511 & $5,544,376$ \\
+FOS\_CS & 452,970 & 738,253 & 10,726 & $1,658,917$ \\
+FOS\_Economics & 412,621 & 597,121 & 8,269 & $1,163,700$ \\
+FOS\_Medicine & 182,002 & 491,447 & 7,251 & 819,312 \\
+FOS\_Physics & 449,844 & 596,117 & 5,465 & $1,602,723$ \\
+\hline
+FOS\_5Fields & $2,578,185$ & $3,868,419$ & 18,533 & $10,160,137$ \\
+Google & 600,391 & 635,585 & 151 & $2,373,109$ \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection*{4.1 Task Definition}
+Given a network $G=(V, E, A)$, where $V$ denotes the vertex set, $E$ denotes the network topology structure and $A$ preserves node attributions, the task of NRL is to learn a mapping function $f: v \mapsto$ $r_{v} \in R_{d}$, where $r_{v}$ is the learned representation of vertex $v$ and $d$ is the dimension of $v_{r}$. We study and evaluate related methods including DeepWalk [11], PTE [14], LINE [15] and metapath2vec [4] on two tasks: scholar classification and scholar clustering.
+
+\subsection*{4.2 Experimental Setup}
+Based on AceKG, we first select 5 fields of study (FOS) ${ }^{4}$ and 5 main subfields of each. Then we extract all scholars, papers and venues in those fields of study respectively to construct 5 heterogeneous collaboration networks. We also construct 2 larger academic knowledge graph: (i) we integrate 5 networks above into one graph which contains all the information of 5 fields of study; (ii) we match the 8 categories of venues in Google Scholar ${ }^{5}$ to those in AceKG. 151 of 160 venues ( 8 categories $\times 20$ per category) are successfully matched. Then we select all the related papers and scholars to construct one large heterogeneous collaboration networks. The statistics of these networks are shown in Table 5. Moreover, the category of scholars are labeled with the following approach:
+
+(1) To label the papers, we adopt the field of study information and Google scholar category directly as the label of papers in 6 FOS networks and 1 Google scholar network respectively.
+
+(2) As for the label of the scholars, it is determined by the majority of his/her publications' labels. When some labels have equal quantity of papers, they are chosen randomly.
+
+\subsection*{4.3 Evaluation Results}
+4.3.1 Classification. We adopt logistic regression to conduct scholar classification tasks. Note that in this task 5 -fold cross validation are adopted. Table 6 shows the classification results evaluated by MicroF1 and Macro-F1. metapath2vec learns heterogeneous node embeddings significantly better than other methods. We attribute it to the modified heterogeneous sampling and skip-gram algorithm. However, DeepWalk and LINE also achieve comparable performance, showing their scalability on heterogeneous networks. Another reason for the comparable performance is that our edge types and node types are limited, thus algorithms on homogeneous information network can also learn a comprehensive network representation.
+
+It should be noted that there is significant performance gap between FOS-labeled datasets and the Google-labeled dataset, which is because of the different distributions of papers and scholars. Papers collected in the Google-labeled dataset are published in Topvenues and consequently few scholars could be active in multiple
+\footnotetext{${ }^{4} 5$ fields of study: Biology, Computer science, Economics, Medicine and Physics.
+
+${ }^{5}$ \href{https://scholar.google.com/citations?view_op=top_venues&hl=en&vq=eng}{https://scholar.google.com/citations?view\_op=top\_venues\&hl=en\&vq=eng}
+}
+
+Table 6: Results of scholar classification.
+
+\begin{center}
+\begin{tabular}{c|cccccccc}
+\hline
+Metric & Method & FOS\_BI & FOS\_CS & FOS\_EC & FOS\_ME & FOS\_PH & FOS\_5F & Google \\
+\hline
+ & DeepWalk & 0.792 & 0.545 & 0.692 & 0.663 & 0.774 & 0.731 & 0.948 \\
+Micro-F1 & LINE(1st+2nd) & 0.722 & 0.633 & 0.717 & 0.701 & 0.779 & 0.755 & 0.955 \\
+ & PTE & 0.759 & 0.574 & 0.654 & 0.694 & 0.723 & 0.664 & 0.966 \\
+ & metapath2vec & 0.828 & 0.678 & 0.753 & 0.770 & 0.794 & 0.831 & 0.971 \\
+\hline
+ & DeepWalk & 0.547 & 0.454 & 0.277 & 0.496 & 0.592 & 0.589 & 0.942 \\
+Macro-F1 & LINE(1st+2nd) & 0.445 & 0.542 & 0.385 & 0.577 & 0.640 & 0.655 & 0.949 \\
+ & PTE & 0.495 & 0.454 & 0.276 & 0.555 & 0.571 & 0.528 & 0.961 \\
+ & metapath2vec & 0.637 & 0.570 & 0.485 & 0.659 & 0.635 & 0.682 & 0.968 \\
+\hline
+\end{tabular}
+\end{center}
+
+Table 7: Results of scholar clustering.
+
+\begin{center}
+\begin{tabular}{l|cc}
+\hline
+Model & FOS-labeled & Google-labeled \\
+\hline
+DeepWalk & 0.277 & 0.394 \\
+LINE(1st+2nd) & 0.305 & 0.459 \\
+PTE & 0.153 & 0.602 \\
+metapath2vec & 0.427 & 0.836 \\
+\hline
+\end{tabular}
+\end{center}
+
+categories, while there are more cross-field papers and scholars in FOS-labeled datasets.
+
+Moreover, the performance indicates the level of interdiscipline in these fields. For example, the highest Micro-F1 shows that the sub-fields of Biology are the most independent, while the lowest Micro-F1 means that the sub-fields of CS cross mostly. Finally, the dramatical decline from Micro-F1 to Macro-F1, especially in Economy, indicates the imbalance of sub-fields in some FOS.
+
+4.3.2 Clustering. Based on the same node representation in scholar classification task, we further conduct scholar clustering experiment with $\mathrm{k}$-means algorithm to evaluate the models' performance. All clustering experiments are conducted 10 times and the average performance reported.
+
+Table 7 shows the clustering results evaluated by normalized mutual information (NMI). Overall, metapath2vec outperforms all the other models, indicating the modified heterogeneous sampling and skip-gram algorithm can preserve the information of the knowledge graph better. Another interesting result is the performance gap between FOS-labeled dataset and Google-labeled dataset, which indicates the hypothesis we proposed in Section 4.3.1.
+
+\section*{5 FUTURE DIRECTIONS}
+There are other research topics which can leverage AceKG.
+
+Collaboration prediction. To predict a researcher's future collaboration behavior is interesting, in which previous collaborators, citation relations and other side information have been considered. However, all these factors can be thought as obvious features, while some other hidden features can be ignored. Given this situation, one may perform the task based on the NRL results, which can represent the features of a researcher better and may provide some help to collaboration prediction task.
+
+Finding rising star. Finding academic rising star is important in academic mining, and researchers have raised various algorithms for this based on publication increasing rate, mentoring relations and some other factors. In order to make the classification better, we can firstly embed the AceKG to uncover the hidden features of rising star and then apply some clustering algorithms on the embedding results.
+
+\section*{6 CONCLUSION}
+In this paper we propose AceKG, a large-scale knowledge graph in academic domain, which consists of 3.13 billion triples of academic facts based on a consistent ontology, including commonly used properties of papers, authors, fields of study, venues, institutes and relations among them. Based on AceKG, we design three experimental evaluations and further compare several state-of-the-art approaches on AceKG. Besides, we propose several potential topics that can benefit from it. We will keep maintaining and updating the coverage of AceKG for wider usage in these directions.
+
+\section*{7 ACKNOWLEDGEMENTS}
+The work is supported by National Key R\&D Program of China 2018 YFB1004703 and NSFC 61532012, 61702327.
+
+\section*{REFERENCES}
+[1] Kurt Bollacker, Colin Evans, Praveen Paritosh, Tim Sturge, and Jamie Taylor. 2008. Freebase: A Collaboratively Created Graph Database for Structuring Human Knowledge. In SIGMOD.
+
+[2] Antoine Bordes, Nicolas Usunier, Alberto Garcia-Durán, Jason Weston, and Oksana Yakhnenko. 2013. Translating Embeddings for Modeling Multi-relational Data. In NIPS
+
+[3] Christopher De Sa, Alex Ratner, Christopher Rē, Jaeho Shin, et al. 2016. DeepDive: Declarative Knowledge Base Construction. In ACM SIGMOD Record.
+
+[4] Yuxiao Dong, Nitesh V. Chawla, and Ananthram Swami. 2017. Metapath2Vec: Scalable Representation Learning for Heterogeneous Networks. In KDD.
+
+[5] Xu Han, Yankai Lin, Ruobing Xie, Zhiyuan Liu, and Maosong Sun. [n. d.]. OpenKE. \href{http://openke.thunlp.org}{http://openke.thunlp.org}.
+
+[6] Johannes Hoffart, Fabian M. Suchanek, Klaus Berberich, and Gerhard Weikum. 2013. YAGO2: A spatially and temporally enhanced knowledge base from Wikipedia. Artificial Intelligence 194 (2013), 28-61.
+
+[7] Jens Lehmann, Robert Isele, Max Jakob, Anja Jentzsch, et al. 2015. DBpedia - A Large-scale, Multilingual Knowledge Base Extracted from Wikipedia. Semantic Web fournal 6, 2 (2015), 167-195.
+
+[8] George A. Miller. 1995. WordNet: A Lexical Database for English. Commun. ACM 38,11 (Nov. 1995), 39-41.
+
+[9] T. Mitchell, W. Cohen, E. Hruschka, P. Talukdar, et al. 2015. Never-Ending Learning. In $A A A I$.
+
+[10] Maximilian Nickel, Lorenzo Rosasco, and Tomaso Poggio. 2016. Holographic Embeddings of Knowledge Graphs. In AAAI.
+
+[11] Bryan Perozzi, Rami Al-Rfou, and Steven Skiena. 2014. DeepWalk: Online Learning of Social Representations. In KDD. ACM.
+
+[12] Amit Singhal. 1996. Computer science bibliograph. \href{https://dblp.uni-trier.de}{https://dblp.uni-trier.de}
+
+[13] Arnab Sinha, Zhihong Shen, Yang Song, Hao Ma, et al. 2015. An Overview of Microsoft Academic Service (MAS) and Applications. In WWW' 15 Companion.
+
+[14] Jian Tang, Meng Qu, and Qiaozhu Mei. 2015. PTE: Predictive Text Embedding Through Large-scale Heterogeneous Text Networks. In KDD. ACM.
+
+[15] Jian Tang, Meng Qu, Mingzhe Wang, Ming Zhang, Jun Yan, and Qiaozhu Mei. 2015. LINE: Large-scale Information Network Embedding. In WWW.
+
+[16] Jie Tang, Jing Zhang, Limin Yao, Juanzi Li, Li Zhang, and Zhong Su. 2008. ArnetMiner: Extraction and Mining of Academic Social Networks.. In SIGKDD.
+
+[17] Théo Trouillon, Christopher R. Dance, Éric Gaussier, Johannes Welbl, Sebastian Riedel, and Guillaume Bouchard. 2017. Knowledge Graph Completion via Complex Tensor Factorization. F. Mach. Learn. Res. 18, 1 (Jan. 2017)
+
+[18] Zhen Wang, Jianwen Zhang, Jianlin Feng, and Zheng Chen. 2014. Knowledge Graph Embedding by Translating on Hyperplanes. In AAAI.
+
+[19] Bishan Yang, Wen tau Yih, Xiaodong He, and et al. 2015. Embedding Entities and Relations for Learning and Inference in Knowledge Bases.. In ICLR.
+
+
+\end{document}
