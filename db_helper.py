@@ -26,6 +26,80 @@ class Neo4j_interface:
         # print("summary: ", summary)
         # print("keys: ", keys)
         return records
+    
+    def get_author_number(self):
+        number = self.exec_query('MATCH (n:Author) RETURN count(n)')[0]['count(n)']
+        print("number of authors: ", number)
+        return number
+    
+    def get_title_number(self):
+        number = self.exec_query('MATCH (n:Title) RETURN count(n)')[0]['count(n)']
+        print("number of titles: ", number)
+        return number
+    
+    def get_all_nodes(self):
+        nodes = self.exec_query('MATCH (n) RETURN COUNT(n)')
+        print("nodes: ", nodes)
+        return nodes
+    
+    def get_all_relationships(self):
+        relationships = self.exec_query('MATCH ()-[r]->() RETURN COUNT(r)')
+        print("relationships: ", relationships)
+        return relationships
+
+    def insert_a_paper(self, title, authors, abstract, content, references):
+        # Construct parameter dictionary
+        params = {
+            "title": title,
+            "outline": abstract,
+            "content": content,
+            **{f"author_{i}": name for i, name in enumerate(authors)},
+            **{f"reference_title_{i}": ref['title'] for i, ref in enumerate(references)}
+            # **{f"author_ref_{i}_{j}": ref_author for i, ref in enumerate(references) for j, ref_author in enumerate(ref['authors'])}
+        }
+
+        # Initialize query parts
+        merge_authors_and_link = ""
+        merge_reference_and_link = ""
+
+        # Merge authors and create relationships
+        for i, author in enumerate(authors):
+            merge_authors_and_link += f"""
+                MERGE (:Author {{name: $author_{i}}})-[:publishes]->(:Title {{content: $title}})
+                MERGE (:Title {{content: $title}})-[:published_by]->(:Author {{name: $author_{i}}})
+            """
+        
+        # Merge references and create relationships
+        for i, ref in enumerate(references):
+            merge_reference_and_link += f"""
+                MERGE (:Title {{content: $reference_title_{i}}})<-[:references]-(:Title {{content: $title}})
+                MERGE (:Title {{content: $reference_title_{i}}})-[:referenced_by]->(:Title {{content: $title}})
+            """
+            # for j, ref_author in enumerate(ref['authors']):
+            #     merge_reference_and_link += f"""
+            #         MERGE (:Author {{name: $author_ref_{i}_{j}}})-[:publishes]->(:Title {{content: $reference_title_{i}}})
+            #         MERGE (:Title {{content: $reference_title_{i}}})-[:published_by]->(:Author {{name: $author_ref_{i}_{j}}})
+            #     """
+
+        # Main query for inserting the paper and its components
+        query = f"""
+            CREATE (t:Title {{content: $title}})
+            CREATE (o:Outline {{content: $outline}})
+            CREATE (t)-[:summarized_in]->(o)
+            CREATE (c:Content {{content: $content}})
+            CREATE (t)-[:consists_of]->(c)
+            CREATE (c)-[:part_of]->(t)
+            {merge_authors_and_link}
+            {merge_reference_and_link}
+        """
+
+        print('start inserting a paper')
+        # Execute the query
+        try:
+            self.driver.execute_query(query, parameters_=params, database_='neo4j')
+            print("Paper inserted successfully.")
+        except Exception as e:
+            print(f"An error occurred: {e}")
 
     def insert_document(self, path):
         with open(path, 'r') as f:
@@ -73,5 +147,5 @@ class Neo4j_interface:
 if __name__ == '__main__':
     interface = Neo4j_interface()
     interface.exec_query('MATCH (n) DETACH DELETE n')
-    interface.insert_document('papers_data/AceKG.tex')
+    interface.insert_document('paper/AceKG.tex')
     interface.exec_query('MATCH (n) RETURN n')

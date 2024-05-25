@@ -23,7 +23,9 @@ def extract_abstract(text, max_lines=30):
         abstract_full = match.group(1).strip()
         # Split the abstract into lines and limit the number of lines returned
         abstract_lines = abstract_full.splitlines()
-        limited_abstract = '\n'.join(abstract_lines[:max_lines])
+        limited_abstract = abstract_lines[:max_lines]
+        limited_abstract = [line.strip() for line in limited_abstract if line.strip()]
+        limited_abstract = '\n'.join(limited_abstract)
         return limited_abstract
     else:
         return "Abstract section not found"
@@ -37,9 +39,46 @@ def extract_conclusion(mmd):
     match = re.search(pattern, mmd, re.IGNORECASE | re.DOTALL | re.MULTILINE)
     
     if match:
-        return match.group(1).strip()  # Return the captured group, which is the conclusion
+        result = match.group(1).strip().splitlines()
+        result = [line.strip() for line in result if line.strip()]
+        result = '\n'.join(result)
+        return result  # Return the captured group, which is the conclusion
     else:
         return "Conclusion section not found"
+    
+def extract_content(mmd):
+    pattern = r'^##\s*.*?Introduction.*?\n(.*?)(?=\n##|\Z)'
+    match = re.search(pattern, mmd, re.IGNORECASE | re.DOTALL | re.MULTILINE)
+    
+    if match:
+        result = match.group(1).strip().splitlines()
+        result = [line.strip() for line in result if line.strip()]
+        result = '\n'.join(result)
+        return result
+    else:
+        return "Content section not found"
+    
+def extract_authors(mmd):
+    pattern = r'(.*?)###### Abstract'
+    match = re.search(pattern, mmd, re.DOTALL)
+
+    author_pattern = r"^[a-zA-Z]+['. -][a-zA-Z ]?[a-zA-Z]*$"
+
+    if match:
+        authors = match.group(1).strip().splitlines()
+        authors = [author.strip() for author in authors if author.strip()]
+        print(authors)
+        author_list = []
+
+        for idx, line in enumerate(authors):
+            author_match = re.search(author_pattern, line)
+            if author_match:
+                author_list.append(author_match.group())
+                # print("Author not found in line", idx, ":", line)
+                
+        return author_list
+    else:
+        return "Authors not found"
 
 def main():
     papers = pd.read_csv('./paper/papers.csv')
@@ -48,8 +87,8 @@ def main():
         if os.path.exists(f"./papers/{arxiv_id}/{arxiv_id}.mmd"):
             with open(f"./papers/{arxiv_id}/{arxiv_id}.mmd", 'r') as f:
                 mmd = f.read()
-            target = extract_conclusion(mmd)
-            print(arxiv_id, target)
+            target = extract_content(mmd)
+            print(arxiv_id, target, '\n')
 
 if __name__ == '__main__':
     main()

@@ -58,7 +58,7 @@ def find_bib_refs(files):
     ref = []
     title = ''
     authors = []
-    print("bib files: ",files)
+    # print("bib files: ",files)
     if len(files) > 0:
         for file in files:
             with open(file, 'r') as file:
@@ -81,25 +81,27 @@ def find_bib_refs(files):
                         cleaned_line = cleaned_line.replace('{', '').replace('}', '')
                         cleaned_line = re.sub(r'\s+', ' ', cleaned_line)
                         title = cleaned_line
-                    elif re.match(r'^\s*author\s*=', Slice):
-                        cleaned_line = re.sub(r'^author\s*=\s*', '', Slice)
-                        cleaned_line = re.sub(r',$', '', cleaned_line)
-                        while True:
-                            cleaned_line, count1 = re.subn(r'^\{(.*)\}$', r'\1', cleaned_line)
-                            cleaned_line, count2 = re.subn(r'^"(.*)"$', r'\1', cleaned_line)
-                            if count1 + count2 == 0:
-                                break
-                        for old, new in replacements.items():
-                            cleaned_line = cleaned_line.replace(old, new)
-                        cleaned_line = cleaned_line.replace('{', '').replace('}', '')
-                        cleaned_line = re.sub(r'\s+', ' ', cleaned_line)
-                        authors = cleaned_line
-                        authors = authors.split(' and ')
-                        for i in range(len(authors)):
-                            if ',' in authors[i]:
-                                authors[i] = authors[i].split(', ')[1] + ' ' + authors[i].split(', ')[0]
+                    # elif re.match(r'^\s*author\s*=', Slice):
+                    #     cleaned_line = re.sub(r'^author\s*=\s*', '', Slice)
+                    #     cleaned_line = re.sub(r',$', '', cleaned_line)
+                    #     while True:
+                    #         cleaned_line, count1 = re.subn(r'^\{(.*)\}$', r'\1', cleaned_line)
+                    #         cleaned_line, count2 = re.subn(r'^"(.*)"$', r'\1', cleaned_line)
+                    #         if count1 + count2 == 0:
+                    #             break
+                    #     for old, new in replacements.items():
+                    #         cleaned_line = cleaned_line.replace(old, new)
+                    #     cleaned_line = cleaned_line.replace('{', '').replace('}', '')
+                    #     cleaned_line = re.sub(r'\s+', ' ', cleaned_line)
+                    #     authors = cleaned_line
+                    #     authors = authors.split(' and ')
+                    #     print(len(authors))
+                    #     for i in range(len(authors)):
+                    #         if ',' in authors[i]:
+                    #             authors[i] = authors[i].split(', ')[1] + ' ' + authors[i].split(', ')[0]
                 if title != '' and authors != '' and {'title': title, 'authors': authors} not in ref:
-                    ref.append({'title': title, 'authors': authors})
+                    # ref.append({'title': title, 'authors': authors})
+                    ref.append({'title': title})
                     title = ''
                     authors = []
     
@@ -125,28 +127,40 @@ def find_bbl_refs(files):
                     cleaned_line = cleaned_line.strip()
                     title = cleaned_line
                     
-                    bbl_author = newblocks[0].strip()
-                    pos = bbl_author.find(']')
-                    if pos != -1:
-                        bbl_author = bbl_author[pos+1:]
-                    pos = bbl_author.find('}')
-                    if pos != -1:
-                        cleaned_line = bbl_author[pos+1:]
-                    for old, new in replacements.items():
-                        cleaned_line = cleaned_line.replace(old, new)
-                    cleaned_line = cleaned_line.replace('{', '').replace('}', '')
-                    cleaned_line = re.sub(r'.$', '', cleaned_line)
-                    authors = re.split(r',\s', cleaned_line)
-                    for i in range(len(authors)):
-                        authors[i] = authors[i].strip().lstrip("and ").strip()
-                    if title != '' and authors != '' and {'title': title, 'authors': authors} not in ref:
-                        ref.append({'title': title, 'authors': authors})
+                    # bbl_author = newblocks[0].strip()
+                    # pos = bbl_author.find(']')
+                    # if pos != -1:
+                    #     bbl_author = bbl_author[pos+1:]
+                    # pos = bbl_author.find('}')
+                    # if pos != -1:
+                    #     cleaned_line = bbl_author[pos+1:]
+                    # for old, new in replacements.items():
+                    #     cleaned_line = cleaned_line.replace(old, new)
+                    # cleaned_line = cleaned_line.replace('{', '').replace('}', '')
+                    # cleaned_line = re.sub(r'.$', '', cleaned_line)
+                    # authors = re.split(r',\s', cleaned_line)
+                    # for i in range(len(authors)):
+                    #     authors[i] = authors[i].strip().lstrip("and ").strip()
+                    # if title != '' and authors != '' and {'title': title, 'authors': authors} not in ref:
+                    if title != '' and {'title': title} not in ref:
+                        # ref.append({'title': title, 'authors': authors})
+                        ref.append({'title': title})
                         title = ''
                         authors = []
     return ref
 
-if __name__ == "__main__":
+def extract_reference(arxiv_id: str):
+    save_path = f"./paper/{arxiv_id}"
+    files1 = find_bib_files(save_path)
+    files2 = find_bbl_files(save_path)
+    ref = []
+    if len(files1) > 0:
+        ref = find_bib_refs(files1)
+    elif len(files2) > 0:
+        ref = find_bbl_refs(files2)
+    return ref
 
+if __name__ == "__main__":
     target=input("input the paper index: ").strip()
 
     url = f"https://arxiv.org/src/{target}"
@@ -162,12 +176,8 @@ if __name__ == "__main__":
         download_file(url2, pdf_path)
         remove_file(download_path)
         
-    files1 = find_bib_files(save_path)
-    files2 = find_bbl_files(save_path)
-    if len(files1) > 0:
-        ref = find_bib_refs(files1)
-    elif len(files2) > 0:
-        ref = find_bbl_refs(files2)
+    ref = extract_reference(target)
+
     print("ref count: ",len(ref))
     print("ref list: ")
     for i in ref:

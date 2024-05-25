@@ -1,12 +1,11 @@
 Title,Topic,Arxiv Link,Other Link
-"AceKG: A Large-scale Knowledge Graph
-for Academic Data Mining",Knowledge Graph,https://arxiv.org/pdf/1807.08484,AceKG: A Large-scale Knowledge Graph for Academic Data Mining
+AceKG: A Large-scale Knowledge Graph for Academic Data Mining,Knowledge Graph,https://arxiv.org/pdf/1807.08484,AceKG: A Large-scale Knowledge Graph for Academic Data Mining
 Knowledge Graphs Querying,Knowledge Graph,https://arxiv.org/abs/2305.14485,Knowledge Graphs Querying
 SQL-to-Schema Enhances Schema Linking in Text-to-SQL,,https://arxiv.org/abs/2405.09593,
 Color: A Framework for Applying Graph Coloring to Subgraph Cardinality Estimation,,https://arxiv.org/abs/2405.06767,
 "A Comprehensive Survey on Vector Database:
 Storage and Retrieval Technique, Challenge",,https://arxiv.org/pdf/2310.11703,
-Database Meets Deep Learning: Challenges and Opportunities,,https://arxiv.org/abs/1906.08986,
+Database Meets Deep Learning: Challenges and Opportunities,,https://arxiv.org/abs/1906.08986,https://arxiv.org/abs/1906.08986
 Survey of Vector Database Management Systems,,https://arxiv.org/abs/2310.14021,
 When Large Language Models Meet Vector Databases: A Survey,,https://arxiv.org/abs/2402.01763,
 A1: A Distributed In-Memory Graph Database,Distributed,https://arxiv.org/abs/2004.05712,
@@ -14,7 +13,7 @@ Survey the storage systems used in HPC and BDA ecosystems,,https://arxiv.org/abs
 "CERT: Finding Performance Issues in Database Systems Through
 the Lens of Cardinality Estimation",,https://arxiv.org/pdf/2306.00355,
 Testing Database Engines via Query Plan Guidance,,https://arxiv.org/pdf/2312.17510,
-"Performance Comparison Analysis of ArangoDB, MySQL, and Neo4j: An Experimental Study of Querying Connected Data",,https://arxiv.org/abs/2401.17482,
+"Performance Comparison Analysis of ArangoDB, MySQL, and Neo4j: An Experimental Study of Querying Connected Data","Performance Comparison Analysis of ArangoDB, MySQL, and Neo4j: An Experimental Study of Querying Connected Data",https://arxiv.org/abs/2401.17482,
 Cryptanalysis of the SIMON Cypher Using Neo4j,,https://arxiv.org/abs/2405.04735,
 GLL-based Context-Free Path Querying for Neo4j,,https://arxiv.org/abs/2312.11925,
 Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks,,https://arxiv.org/abs/2005.11401,
@@ -24,3 +23,58 @@ Adaptive-RAG: Learning to Adapt Retrieval-Augmented Large Language Models throug
 Retrieval-Augmented Thought Process as Sequential Decision Making,,https://arxiv.org/pdf/2402.07812,
 An Ontology for Satellite Databases,,https://arxiv.org/abs/1801.02940,
 Context-based Ontology Modelling for Database: Enabling ChatGPT for Semantic Database Management,,https://arxiv.org/abs/2303.07351,
+Increasing the LLM Accuracy for Question Answering: Ontologies to the Rescue!,,https://arxiv.org/abs/2405.11706,
+SQL-to-Schema Enhances Schema Linking in Text-to-SQL,,https://arxiv.org/abs/2405.09593,
+Open-SQL Framework: Enhancing Text-to-SQL on Open-source Large Language Models,,https://arxiv.org/abs/2405.06674,
+Towards Accurate and Efficient Document Analytics with Large Language Models,,https://arxiv.org/abs/2405.04674,
+Aligning Large Language Models to a Domain-specific Graph Database,,https://arxiv.org/abs/2402.16567,
+"From Text to Knowledge with Graphs: modelling, querying and exploiting textual content",,https://arxiv.org/abs/2310.06122,
+On the Shape of Brainscores for Large Language Models (LLMs),Large Language Model,https://arxiv.org/abs/2405.06725,
+Interpreting Latent Student Knowledge Representations in Programming Assignments,Data Mining,https://arxiv.org/abs/2405.08213,
+PATE: Proximity-Aware Time series anomaly Evaluation,Data Mining,https://arxiv.org/abs/2405.12096,
+Spectral Clustering of Attributed Multi-relational Graphs,Knowledge Graph,https://arxiv.org/abs/2311.01840,
+Honeycomb: ordered key-value store acceleration on an FPGA-based SmartNIC,,https://arxiv.org/abs/2303.14259,"Cite ""A1: A Distributed In-Memory Graph Database"""
+The Graph Database Interface: Scaling Online Transactional and Analytical Graph Workloads to Hundreds of Thousands of Cores,,https://arxiv.org/abs/2305.11162,"Cite ""A1: A Distributed In-Memory Graph Database"""
+Untangling the Braid: Finding Outliers in a Set of Streams,,https://arxiv.org/abs/0907.2951,"The same author as ""A1: A Distributed In-Memory Graph Database"", Chiranjeeb Buragohain"
+Distributed Navigation Algorithms for Sensor Networks,,https://arxiv.org/abs/cs/0512060,"The same author as ""A1: A Distributed In-Memory Graph Database"", Chiranjeeb Buragohain"
+ADEdgeDrop: Adversarial Edge Dropping for Robust Graph Neural Networks,,https://arxiv.org/abs/2403.09171,"The same author as ""Spectral Clustering of Attributed Multi-relational Graphs"", Ylli Sadikaj"
+MS MARCO Web Search: a Large-scale Information-rich Web Dataset with Millions of Real Click Labels,,https://arxiv.org/abs/2405.07526,"The same author as ""A1: A Distributed In-Memory Graph Database"", Knut Magne Risvik"
+RESTAD: REconstruction and Similarity based Transformer for time series Anomaly Detection,,https://arxiv.org/abs/2405.07509,"The same author as ""PATE: Proximity-Aware Time series anomaly Evaluation"", Ramin Ghorbani"
+Personalized Anomaly Detection in PPG Data using Representation Learning and Biometric Identification,,https://arxiv.org/abs/2307.06380,"The same author as ""PATE: Proximity-Aware Time series anomaly Evaluation"", Ramin Ghorbani"
+Self-Supervised PPG Representation Learning Shows High Inter-Subject Variability,,https://arxiv.org/abs/2212.04902,"The same author as ""PATE: Proximity-Aware Time series anomaly Evaluation"", Ramin Ghorbani, Marcel J.T. Reinders"
+Recommending Deployment Strategies for Collaborative Tasks,,https://arxiv.org/abs/2003.06875,"The same conference as ""A1: A Distributed In-Memory Graph Database"", SIGMOD' 20"
+From Large Language Models to Databases and Back: A discussion on research and education,,https://arxiv.org/abs/2306.01388,"The same author ""Recommending Deployment Strategies for Collaborative Tasks"", Sihem Amer-Yahia"
+Qd-tree: Learning Data Layouts for Big Data Analytics,,https://arxiv.org/abs/2004.10898,"The same conference as ""A1: A Distributed In-Memory Graph Database"", SIGMOD' 20"
+Facilitating SQL Query Composition and Analysis,,https://arxiv.org/abs/2002.09091,"The same conference as ""A1: A Distributed In-Memory Graph Database"", SIGMOD' 20"
+HADAD: A Lightweight Approach for Optimizing Hybrid Complex Analytics Queries,,https://arxiv.org/abs/2103.12317,"Similar conference as ""A1: A Distributed In-Memory Graph Database"", SIGMOD' 21"
+Fast and Exact Outlier Detection in Metric Spaces: A Proximity Graph-based Approach,,https://arxiv.org/abs/2110.08959,"Similar conference as ""A1: A Distributed In-Memory Graph Database"", SIGMOD' 21"
+Independent Range Sampling on Interval Data,,https://arxiv.org/abs/2405.08315,"The same author as ""Fast and Exact Outlier Detection in Metric Spaces: A Proximity Graph-based Approach"", Daichi Amagata"
+Efficient Algorithms for Top-k Stabbing Queries on Weighted Interval Data,,https://arxiv.org/abs/2405.05601,"The same author as ""Fast and Exact Outlier Detection in Metric Spaces: A Proximity Graph-based Approach"", Daichi Amagata"
+Debiasing Graph Transfer Learning via Item Semantic Clustering for Cross-Domain Recommendations,,https://arxiv.org/abs/2211.03390,"The same author as ""Fast and Exact Outlier Detection in Metric Spaces: A Proximity Graph-based Approach"", Daichi Amagata"
+Fast Algorithm for Embedded Order Dependency Validation,,https://arxiv.org/abs/2312.16033,"The same author as ""Fast and Exact Outlier Detection in Metric Spaces: A Proximity Graph-based Approach"", Takahiro Hara"
+Organized Event Participant Prediction Enhanced by Social Media Retweeting Data,,https://arxiv.org/abs/2310.00896,"The same author as ""Fast and Exact Outlier Detection in Metric Spaces: A Proximity Graph-based Approach"", Takahiro Hara"
+SharPer: Sharding Permissioned Blockchains Over Network Clusters,,https://arxiv.org/abs/1910.00765,"Similar conference as ""A1: A Distributed In-Memory Graph Database"", SIGMOD' 21"
+Quantum Computing for Databases: Overview and Challenges,,https://arxiv.org/abs/2405.12511,"Same keywords ""Database"" as ""Testing Database Engines via Query Plan Guidance"""
+A Taxonomy of Schema Changes for NoSQL Databases,,https://arxiv.org/abs/2205.11660,"Same keywords ""Database"" as ""Testing Database Engines via Query Plan Guidance"""
+Managing Variability in Relational Databases by VDBMS,,https://arxiv.org/abs/1911.11184,"Same keywords ""Database"" as ""Testing Database Engines via Query Plan Guidance"""
+Schema Independent Relational Learning,,https://arxiv.org/abs/1508.03846,"The same author as ""Managing Variability in Relational Databases by VDBMS"", Parisa Ataei"
+On the Efficiency and Robustness of Vibration-based Foundation Models for IoT Sensing: A Case Study,,https://arxiv.org/abs/2404.02461,"The same author as ""AceKG: A Large-scale Knowledge Graph for Academic Data Mining"", Ruijie Wang"
+GeoViz: A Multi-View Visualization Platform for Spatio-temporal Knowledge Graph,,https://arxiv.org/abs/2405.03697,"The same author as ""AceKG: A Large-scale Knowledge Graph for Academic Data Mining"", Xinbing Wang"
+Look into the Future: Deep Contextualized Sequential Recommendation,,https://arxiv.org/abs/2405.14359,"The same author as ""AceKG: A Large-scale Knowledge Graph for Academic Data Mining"", Weinan Zhang"
+A Quest for Structure: Jointly Learning the Graph Structure and Semi-Supervised Classification,,https://arxiv.org/abs/1909.12385,"The same conference as ""AceKG: A Large-scale Knowledge Graph for Academic Data Mining"", CIMK' 18"
+REGAL: Representation Learning-based Graph Alignment,,https://arxiv.org/abs/1802.06257,"The same conference as ""AceKG: A Large-scale Knowledge Graph for Academic Data Mining"", CIMK' 18"
+Coarse-to-Fine Annotation Enrichment for Semantic Segmentation Learning,,https://arxiv.org/abs/1808.07209,"The same conference as ""AceKG: A Large-scale Knowledge Graph for Academic Data Mining"", CIMK' 18"
+Zoom-SVD: Fast and Memory Efficient Method for Extracting Key Patterns in an Arbitrary Time Range,,https://arxiv.org/abs/1805.00754,"The same conference as ""AceKG: A Large-scale Knowledge Graph for Academic Data Mining"", CIMK' 18, but topic is not that relevant"
+Semi-supervised Learning on Graphs with Generative Adversarial Nets,,https://arxiv.org/abs/1809.00130,"The same conference as ""AceKG: A Large-scale Knowledge Graph for Academic Data Mining"", CIMK' 18, but topic is not that relevant"
+Mining Frequent Patterns in Evolving Graphs,,https://arxiv.org/abs/1809.00394,"The same conference as ""AceKG: A Large-scale Knowledge Graph for Academic Data Mining"", CIMK' 18, but topic is not that relevant"
+Multiresolution Graph Attention Networks for Relevance Matching,,https://arxiv.org/abs/1902.10580,"The same conference as ""AceKG: A Large-scale Knowledge Graph for Academic Data Mining"", CIMK' 18, but topic is not that relevant"
+Estimating Noisy Class Posterior with Part-level Labels for Noisy Label Learning,,https://arxiv.org/abs/2405.05714,"The same author as ""SQL-to-Schema Enhances Schema Linking in Text-to-SQL"", Rui Zhao"
+GraphPub: Generation of Differential Privacy Graph with High Availability,,https://arxiv.org/abs/2403.00030,"The same author as ""Estimating Noisy Class Posterior with Part-level Labels for Noisy Label Learning"", Bo Dong"
+Efficient LLM Inference on CPUs,,https://arxiv.org/abs/2311.00502,"The same author as ""Estimating Noisy Class Posterior with Part-level Labels for Noisy Label Learning"", Bo Dong"
+Compressing Context to Enhance Inference Efficiency of Large Language Models,,https://arxiv.org/abs/2310.06201,"The same author as ""Estimating Noisy Class Posterior with Part-level Labels for Noisy Label Learning"", Bo Dong"
+Teaching MLP More Graph Information: A Three-stage Multitask Knowledge Distillation Framework,,https://arxiv.org/abs/2403.01079,"The same author as ""Estimating Noisy Class Posterior with Part-level Labels for Noisy Label Learning"", Bin Shi"
+ARIEL: Adversarial Graph Contrastive Learning,,https://arxiv.org/abs/2208.06956,"Cite ""AceKG: A Large-scale Knowledge Graph for Academic Data Mining"""
+Adversarial Graph Contrastive Learning with Information Regularization,,https://arxiv.org/abs/2202.06491,
+"Web-Scale Academic Name Disambiguation: the WhoIsWho Benchmark, Leaderboard, and Toolkit",,https://arxiv.org/abs/2302.11848,"Cite ""AceKG: A Large-scale Knowledge Graph for Academic Data Mining"""
+Mutually-paced Knowledge Distillation for Cross-lingual Temporal Knowledge Graph Reasoning,,https://arxiv.org/abs/2303.14898,"Cite ""AceKG: A Large-scale Knowledge Graph for Academic Data Mining"""
+SemOpenAlex: The Scientific Landscape in 26 Billion RDF Triples,,https://arxiv.org/abs/2308.03671,"Cite ""AceKG: A Large-scale Knowledge Graph for Academic Data Mining"""
