@@ -1,5 +1,10 @@
 import dotenv, os
 from neo4j import GraphDatabase
+<<<<<<< HEAD
+import re
+
+=======
+>>>>>>> fcf70eac477a1e0c9932d0181e09d59c8a4e8305
 from tex_helper import *
 import numpy as np
 from utils import *
@@ -195,9 +200,38 @@ class Neo4j_interface:
             content=content,
             database_='neo4j'
         )
+    
+    def text2cypher(self, text: str):
+        if 'title' in text and 'contain' not in text:
+            # 限制只能是 ... title <title>
+            title = text.split('title ')[1]
+            title = title.replace('"', '')
+            title = title.replace("'", "")
+            title = title.replace(".", "")
+            query = f"MATCH (n: Title) WHERE TOLOWER(n.content) = TOLOWER('{title}') RETURN n"
+            result = self.exec_query(query)
+        elif 'contain' in text and 'keyword' not in text:
+            keywords = text.split('contain ')[1]
+            keywords = keywords.replace('"', '')
+            keywords = keywords.replace("'", "")
+            keywords = keywords.replace(".", "")
+            keywords = keywords.split(', ')
+            
+            result = []
+            for keyword in keywords:
+                query = f"MATCH (n: Title) WHERE TOLOWER(n.content) CONTAINS TOLOWER('{keyword}') RETURN n"
+                result += self.exec_query(query)
+        elif 'keyword' in text:
+            pass
 
 if __name__ == '__main__':
     interface = Neo4j_interface()
     # interface.exec_query('MATCH (n) DETACH DELETE n')
     # interface.insert_document('paper/AceKG.tex')
-    # interface.exec_query('MATCH (n) RETURN n')
+    interface.exec_query('MATCH (n) RETURN n')
+    # interface.exec_query(f"MATCH (n: Title) WHERE n.content = 'Regular Path Query Evaluation on Streaming Graphs' RETURN n")
+
+    text1 = "Find papers with title 'Regular Path Query Evaluation on Streaming Graphs'."
+    text2 = "Get papers with title Regular Path Query Evaluation on Streaming Graphs."
+    text3 = "Find papers that the title contain 'Query', 'Graph'."
+    # interface.text2cypher(text3)
