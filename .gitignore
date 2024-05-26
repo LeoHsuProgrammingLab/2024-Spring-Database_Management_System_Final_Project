@@ -1,5 +1,5 @@
 .env
-credential.txt
+credential*
 papers
 __pycache__
 .DS_Store

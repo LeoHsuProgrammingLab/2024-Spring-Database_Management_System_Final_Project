@@ -79,6 +79,18 @@ def extract_authors(mmd):
         return author_list
     else:
         return "Authors not found"
+    
+def extract_keywords(mmd):
+    pattern = r'^Keywords.*?\n(.*?)(?=\n\S|\Z)'
+    match = re.search(pattern, mmd, re.IGNORECASE | re.DOTALL | re.MULTILINE)
+    
+    if match:
+        result = match.group(1).strip().splitlines()
+        result = [line.strip() for line in result if line.strip()]
+        result = '\n'.join(result)
+        return result
+    else:
+        return "Keywords section not found"
 
 def main():
     papers = pd.read_csv('./paper/papers.csv')
@@ -87,7 +99,7 @@ def main():
         if os.path.exists(f"./papers/{arxiv_id}/{arxiv_id}.mmd"):
             with open(f"./papers/{arxiv_id}/{arxiv_id}.mmd", 'r') as f:
                 mmd = f.read()
-            target = extract_content(mmd)
+            target = extract_keywords(mmd)
             print(arxiv_id, target, '\n')
 
 if __name__ == '__main__':

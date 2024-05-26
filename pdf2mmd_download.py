@@ -22,8 +22,11 @@ def combine_tex_files(arxiv_id: str):
         # Read each file and append its content to the combined_content string
         for filename in tex_files:
             with open(filename, 'r') as file:
-                content = file.read()
-                combined_content += content + "\n\n"  # Adding some space between contents of each file
+                try:
+                    content = file.read()
+                    combined_content += content + "\n\n"  # Adding some space between contents of each file
+                except UnicodeDecodeError:
+                    print(f"Cannot read {filename}. It might be a binary file.")
 
 
         # Check if you have write permissions
@@ -80,26 +83,28 @@ def main():
     arxiv_list = [id.split('/')[-1] for id in papers['Arxiv Link'].values]
 
     for arxiv_id in tqdm(arxiv_list):
-        if not os.path.exists(f"./papers/{arxiv_id}"):
-            os.makedirs(f"./papers/{arxiv_id}")
-
-        pdf_url = f"https://arxiv.org/pdf/{arxiv_id}.pdf"
-        save_path = f"./papers/{arxiv_id}/{arxiv_id}.pdf"
-
-        # downlaod_papers_tex(arxiv_id)
-        
-        if download_file(pdf_url, save_path):
-            command = f"nougat {save_path} --out ./papers/{arxiv_id} --no-skipping"
-            result = subprocess.run(command, capture_output=True, text=True, shell=True)  # Added shell=True for command string
+        combine_tex_files(arxiv_id)
             
-            # Check if the command was successful
-            if result.returncode == 0:
-                print("Command executed successfully for:", save_path)
-            else:
-                print("Error running command for:", save_path)
-                print("Error output:", result.stderr)
-        else:
-            print(f"Skipping command execution due to failed download: {arxiv_id}")
+        # if not os.path.exists(f"./papers/{arxiv_id}"):
+        #     os.makedirs(f"./papers/{arxiv_id}")
+
+        # pdf_url = f"https://arxiv.org/pdf/{arxiv_id}.pdf"
+        # save_path = f"./papers/{arxiv_id}/{arxiv_id}.pdf"
+
+        # # downlaod_papers_tex(arxiv_id)
+        
+        # if download_file(pdf_url, save_path):
+        #     command = f"nougat {save_path} --out ./papers/{arxiv_id} --no-skipping"
+        #     result = subprocess.run(command, capture_output=True, text=True, shell=True)  # Added shell=True for command string
+            
+        #     # Check if the command was successful
+        #     if result.returncode == 0:
+        #         print("Command executed successfully for:", save_path)
+        #     else:
+        #         print("Error running command for:", save_path)
+        #         print("Error output:", result.stderr)
+        # else:
+        #     print(f"Skipping command execution due to failed download: {arxiv_id}")
     
 if __name__ == "__main__":
     main()

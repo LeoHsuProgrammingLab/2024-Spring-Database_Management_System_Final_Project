@@ -1,8 +1,17 @@
 import dotenv, os
 from neo4j import GraphDatabase
+<<<<<<< HEAD
 import re
 
+=======
+>>>>>>> fcf70eac477a1e0c9932d0181e09d59c8a4e8305
 from tex_helper import *
+import numpy as np
+from utils import *
+
+import sys
+sys.path.append('semantic_search/')
+from embed_extractor import LLM
 
 class Neo4j_interface:
     def __init__(self, conn_info='credential.txt'):
@@ -14,6 +23,7 @@ class Neo4j_interface:
         AUTH = (os.getenv("NEO4J_USERNAME"), os.getenv("NEO4J_PASSWORD"))
         self.driver = GraphDatabase.driver(URI, auth=AUTH)
         self.driver.verify_connectivity()
+        self.llm = LLM()    
 
     def __del__(self):
         self.close()
@@ -48,6 +58,21 @@ class Neo4j_interface:
         print("relationships: ", relationships)
         return relationships
 
+    def get_all_outline_num(self):
+        outlines = self.exec_query('MATCH (o:Outline) RETURN COUNT(o)')
+        print("outlines: ", outlines)
+        return outlines
+    
+    def get_all_embed_num(self):
+        embeds = self.exec_query('MATCH (e:Embedding) RETURN COUNT(e)')
+        print("embeds: ", embeds)
+        return embeds
+    
+    def get_all_keyword_num(self):
+        keywords = self.exec_query('MATCH (k:Keyword) RETURN COUNT(k)')
+        print("keywords: ", keywords)
+        return keywords
+
     def insert_a_paper(self, title, authors, abstract, content, references):
         # Construct parameter dictionary
         params = {
@@ -66,15 +91,17 @@ class Neo4j_interface:
         # Merge authors and create relationships
         for i, author in enumerate(authors):
             merge_authors_and_link += f"""
-                MERGE (:Author {{name: $author_{i}}})-[:publishes]->(:Title {{content: $title}})
-                MERGE (:Title {{content: $title}})-[:published_by]->(:Author {{name: $author_{i}}})
+                MERGE (a_{i}:Author {{name: $author_{i}}})
+                CREATE (a_{i})-[:publishes]->(t)
+                CREATE (t)-[:published_by]->(a_{i})
             """
         
         # Merge references and create relationships
         for i, ref in enumerate(references):
             merge_reference_and_link += f"""
-                MERGE (:Title {{content: $reference_title_{i}}})<-[:references]-(:Title {{content: $title}})
-                MERGE (:Title {{content: $reference_title_{i}}})-[:referenced_by]->(:Title {{content: $title}})
+                MERGE (ref_{i}:Title {{content: $reference_title_{i}}})
+                CREATE (t)-[:references]->(ref_{i})
+                CREATE (ref_{i})-[:referenced_by]->(t)
             """
             # for j, ref_author in enumerate(ref['authors']):
             #     merge_reference_and_link += f"""
@@ -84,7 +111,7 @@ class Neo4j_interface:
 
         # Main query for inserting the paper and its components
         query = f"""
-            CREATE (t:Title {{content: $title}})
+            MERGE (t:Title {{content: $title}})
             CREATE (o:Outline {{content: $outline}})
             CREATE (t)-[:summarized_in]->(o)
             CREATE (c:Content {{content: $content}})
@@ -101,6 +128,35 @@ class Neo4j_interface:
             print("Paper inserted successfully.")
         except Exception as e:
             print(f"An error occurred: {e}")
+
+    def insert_keyword_of_a_paper(self, keywords, title):
+        for keyword in keywords:
+            self.driver.execute_query("""
+                MATCH (t:Title {content: $title})
+                MERGE (k:Keyword {content: $keyword})
+                CREATE (k)-[:topic_of]->(t)
+                CREATE (t)-[:has_topic]->(k)
+                """,
+                keyword=keyword, title=title, database_='neo4j'
+            )
+
+    def insert_embed_of_a_paper(self, embedding: np.ndarray, title: str): # top vector of the paper
+        self.driver.execute_query("""
+            CREATE (e:Embedding {content: $embedding})
+            WITH e
+            MATCH (t:Title {content: $title})
+            CREATE (t)-[:has_embedding]->(e)
+            CREATE (e)-[:embedding_of]->(t)
+            """, 
+            embedding=embedding, title=title, database_='neo4j'
+        )
+
+    def get_embedding(self, text: str):
+        text = truncate_text_to_bytes(text)
+        return self.llm.get_embedding(text)
+    
+    def get_keywords(self, abstract):
+        return self.llm.get_keywords(abstract)
 
     def insert_document(self, path):
         with open(path, 'r') as f:
@@ -126,7 +182,7 @@ class Neo4j_interface:
         for i in range(len(reference)):
             merge_reference_and_link += """
             MERGE (title{idx}:Title {{content: '{title}'}})
-            CREATE (title)-[:refereces]->(title{idx})
+            MERGE (title)-[:refereces]->(title{idx})
             CREATE (title{idx})-[:referenced_by]->(title)
             """.format(title=reference[i], idx=i)
 
