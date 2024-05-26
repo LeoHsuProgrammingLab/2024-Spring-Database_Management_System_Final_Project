@@ -2,6 +2,7 @@ import dotenv, os
 from neo4j import GraphDatabase
 from tex_helper import *
 import numpy as np
+from utils import *
 
 import sys
 sys.path.append('semantic_search/')
@@ -86,16 +87,16 @@ class Neo4j_interface:
         for i, author in enumerate(authors):
             merge_authors_and_link += f"""
                 MERGE (a_{i}:Author {{name: $author_{i}}})
-                MERGE (a_{i})-[:publishes]->(t)
-                MERGE (t)-[:published_by]->(a)
+                CREATE (a_{i})-[:publishes]->(t)
+                CREATE (t)-[:published_by]->(a_{i})
             """
         
         # Merge references and create relationships
         for i, ref in enumerate(references):
             merge_reference_and_link += f"""
                 MERGE (ref_{i}:Title {{content: $reference_title_{i}}})
-                MERGE (t)-[:references]->(ref_{i})
-                MERGE (ref_{i})-[:referenced_by]->(t)
+                CREATE (t)-[:references]->(ref_{i})
+                CREATE (ref_{i})-[:referenced_by]->(t)
             """
             # for j, ref_author in enumerate(ref['authors']):
             #     merge_reference_and_link += f"""
@@ -106,11 +107,11 @@ class Neo4j_interface:
         # Main query for inserting the paper and its components
         query = f"""
             MERGE (t:Title {{content: $title}})
-            MERGE (o:Outline {{content: $outline}})
-            MERGE (t)-[:summarized_in]->(o)
-            MERGE (c:Content {{content: $content}})
-            MERGE (t)-[:consists_of]->(c)
-            MERGE (c)-[:part_of]->(t)
+            CREATE (o:Outline {{content: $outline}})
+            CREATE (t)-[:summarized_in]->(o)
+            CREATE (c:Content {{content: $content}})
+            CREATE (t)-[:consists_of]->(c)
+            CREATE (c)-[:part_of]->(t)
             {merge_authors_and_link}
             {merge_reference_and_link}
         """
@@ -128,24 +129,25 @@ class Neo4j_interface:
             self.driver.execute_query("""
                 MATCH (t:Title {content: $title})
                 MERGE (k:Keyword {content: $keyword})
-                MERGE (k)-[:topic_of]->(t)
-                MERGE (t)-[:has_topic]->(k)
+                CREATE (k)-[:topic_of]->(t)
+                CREATE (t)-[:has_topic]->(k)
                 """,
                 keyword=keyword, title=title, database_='neo4j'
             )
 
     def insert_embed_of_a_paper(self, embedding: np.ndarray, title: str): # top vector of the paper
         self.driver.execute_query("""
-            MERGE (e:Embedding {content: $embedding})
+            CREATE (e:Embedding {content: $embedding})
             WITH e
             MATCH (t:Title {content: $title})
-            MERGE (t)-[:has_embedding]->(e)
-            MERGE (e)-[:embedding_of]->(t)
+            CREATE (t)-[:has_embedding]->(e)
+            CREATE (e)-[:embedding_of]->(t)
             """, 
             embedding=embedding, title=title, database_='neo4j'
         )
 
-    def get_embedding(self, text):
+    def get_embedding(self, text: str):
+        text = truncate_text_to_bytes(text)
         return self.llm.get_embedding(text)
     
     def get_keywords(self, abstract):
@@ -195,8 +197,7 @@ class Neo4j_interface:
         )
 
 if __name__ == '__main__':
-    pass
-    # interface = Neo4j_interface()
+    interface = Neo4j_interface()
     # interface.exec_query('MATCH (n) DETACH DELETE n')
     # interface.insert_document('paper/AceKG.tex')
     # interface.exec_query('MATCH (n) RETURN n')

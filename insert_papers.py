@@ -8,7 +8,7 @@ import os
 import glob
 import shutil
 
-interface = Neo4j_interface()
+interface = Neo4j_interface(conn_info='credential.txt')
 
 def main():
     papers = pd.read_csv('./paper/papers.csv')
@@ -16,10 +16,14 @@ def main():
 
     # Insert papers into database
 
-    interface.exec_query('MATCH (n) DETACH DELETE n')
+    # interface.exec_query('MATCH (n) DETACH DELETE n')
     no_paper = 0
     for i, arxiv_id in enumerate(tqdm(arxiv_list)):
         print(arxiv_id)
+
+        # if i < 51:
+        #     continue
+
         title = extract_title(arxiv_id)
         authors = extract_author(arxiv_id)
         abstract = extract_abstract(arxiv_id)
@@ -50,7 +54,7 @@ def main():
         interface.insert_keyword_of_a_paper(keywords, title)
 
 if __name__ == '__main__':
-    main()
+    # main()
     interface.get_all_nodes()
     interface.get_all_relationships()
     interface.get_author_number()
