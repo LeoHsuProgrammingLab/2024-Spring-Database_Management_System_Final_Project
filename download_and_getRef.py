@@ -27,9 +27,13 @@ replacements = {
 }
 
 def download_file(url, save_path):
-    response = requests.get(url)
-    with open(save_path, 'wb') as file:
-        file.write(response.content)
+    if not os.path.exists(os.path.dirname(save_path)):
+        response = requests.get(url)
+        with open(save_path, 'wb') as file:
+            file.write(response.content)
+    else:   
+        print("file already exists")
+        return True
 
 def unzip_tar_gz(file_path, extract_path):
     with tarfile.open(file_path, "r:gz") as tar:
