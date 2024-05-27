@@ -33,3 +33,20 @@ if __name__ == '__main__':
 
     for text in texts:
         papers = interface.text2cypher(text)
+
+    reference_texts = [
+        "Find paper that references 'Regular Path Query Evaluation on Streaming Graphs'",
+        "Find paper that references 'Regular Path Query Evaluation on Streaming Graphs'.",
+        "Find paper references Regular Path Query Evaluation on Streaming Graphs.",
+        "Find paper that cites Regular Path Query Evaluation on Streaming Graphs.",
+        "Find papers that cite Regular Path Query Evaluation on Streaming Graphs.",
+        "Find papers that reference Regular Path Query Evaluation on Streaming Graphs.",
+        "Papers cites 'Regular Path Query Evaluation on Streaming Graphs'",
+        "Find papers 'SemOpenAlex: The Scientific Landscape in 26 Billion RDF Triples' cite",
+        "Find papers 'SemOpenAlex: The Scientific Landscape in 26 Billion RDF Triples' cites",
+        "Find papers cited by 'SemOpenAlex: The Scientific Landscape in 26 Billion RDF Triples'",
+        "Find papers referred by SemOpenAlex: The Scientific Landscape in 26 Billion RDF Triples.",
+    ]
+
+    for text in reference_texts:
+        interface.cypher2text_reference(text)

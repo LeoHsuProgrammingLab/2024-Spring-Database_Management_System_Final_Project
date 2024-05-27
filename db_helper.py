@@ -273,13 +273,47 @@ class Neo4j_interface:
 
         papers = [key for key, _ in sorted(papers.items(), key=lambda item: item[1], reverse=True)]
         return papers
+    
+    def cypher2text_reference(self, text: str):
+        pattern1 = re.compile(r"(?:cited by|referred by|mentioned by)\s+[\'\"]?(.*?)(\.|\"|\'|$)")
+        pattern2 = re.compile(r"\s+[\'\"](.*?)(\"|\')\s+(?:cite|refer|reference|mention|cites|refers|references|mentions|cited|referred|referenced|mentioned)")
+        pattern3 = re.compile(r"(?:cite|refer|reference|mention|cites|refers|references|mentions|cited|referred|referenced|mentioned)\s+[\'\"]?(.*?)(\.|\"|\'|$)")
+        match1 = re.search(pattern1, text)
+        match2 = re.search(pattern2, text)
+        match3 = re.search(pattern3, text)
+        if match1:
+            # print("Match1: ", match1.group(1))
+            title = match1.group(1).lower()
+            records = self.exec_query(f"""MATCH (n: Title)-[r: referenced_by]->(m: Title)
+                                          WHERE toLower(m.content) = '{title}'
+                                          RETURN n.content""", printout=False)
+        elif match2:
+            # print("Match2: ", match2.group(1))
+            title = match2.group(1).lower()
+            records = self.exec_query(f"""MATCH (n: Title)-[r: referenced_by]->(m: Title)
+                                          WHERE toLower(m.content) = '{title}'
+                                          RETURN n.content""", printout=False)
+        elif match3:
+            # print("Match3: ", match3.group(1))
+            title = match3.group(1).lower()
+            records = self.exec_query(f"""MATCH (m: Title)-[r: referenced_by]->(n: Title)
+                                          WHERE toLower(m.content) = '{title}'
+                                          RETURN n.content""", printout=False)
+        else:
+            records = []
         
+        papers = []
+        for record in records:
+            data = record.data()
+            papers.append(data['n.content'])
+
+        return papers
 
 if __name__ == '__main__':
     interface = Neo4j_interface()
     # interface.exec_query('MATCH (n) DETACH DELETE n')
     # interface.insert_document('paper/AceKG.tex')
-    interface.exec_query('MATCH (n: Keyword) RETURN n LIMIT 2')
+    # interface.exec_query('MATCH (n: Author) RETURN n')
     # interface.exec_query(f"MATCH (n: Title) WHERE n.content = 'Regular Path Query Evaluation on Streaming Graphs' RETURN n")
 
     # text1 = "Find papers with title 'Regular Path Query Evaluation on Streaming Graphs'."
@@ -294,9 +328,26 @@ if __name__ == '__main__':
     #                      WHERE toLower(n.content) CONTAINS 'decision'
     #                      RETURN n.content LIMIT 5""")
     # interface.exec_query('MATCH ()-[r: has_topic]->() RETURN r')
-    # interface.exec_query('MATCH ()-[r: referenced_by]->() RETURN r')
-    
-    
+    # interface.exec_query('MATCH (n: Title)-[r: referenced_by]->(m: Title) WHERE m.content = \'SemOpenAlex: The Scientific Landscape in 26 Billion RDF Triples\' RETURN .content')
+
+    reference_texts = [
+        "Find paper that references 'Regular Path Query Evaluation on Streaming Graphs'",
+        "Find paper that references 'Regular Path Query Evaluation on Streaming Graphs'.",
+        "Find paper references Regular Path Query Evaluation on Streaming Graphs.",
+        "Find paper that cites Regular Path Query Evaluation on Streaming Graphs.",
+        "Find papers that cite Regular Path Query Evaluation on Streaming Graphs.",
+        "Find papers that reference Regular Path Query Evaluation on Streaming Graphs.",
+        "Papers cites 'Regular Path Query Evaluation on Streaming Graphs'",
+        "Find papers 'SemOpenAlex: The Scientific Landscape in 26 Billion RDF Triples' cite",
+        "Find papers 'SemOpenAlex: The Scientific Landscape in 26 Billion RDF Triples' cites",
+        "Find papers cited by 'SemOpenAlex: The Scientific Landscape in 26 Billion RDF Triples'",
+        "Find papers referred by SemOpenAlex: The Scientific Landscape in 26 Billion RDF Triples.",
+    ]
+
+    for text in reference_texts:
+        interface.cypher2text_reference(text)
+
+
 
             
             
