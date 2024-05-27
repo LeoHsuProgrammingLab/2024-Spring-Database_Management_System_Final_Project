@@ -5,7 +5,6 @@ import os
 from sklearn.metrics.pairwise import cosine_similarity
 from dotenv import load_dotenv
 from huggingface_hub import HfApi
-from dotenv import load_dotenv
 import pprint
 import json
 import re

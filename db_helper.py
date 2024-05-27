@@ -1,10 +1,5 @@
 import dotenv, os
 from neo4j import GraphDatabase
-<<<<<<< HEAD
-import re
-
-=======
->>>>>>> fcf70eac477a1e0c9932d0181e09d59c8a4e8305
 from tex_helper import *
 import numpy as np
 from utils import *
@@ -33,42 +28,42 @@ class Neo4j_interface:
 
     def exec_query(self, query):
         records, summary, keys = self.driver.execute_query(query, database_="neo4j")
-        print("records: ", records)
+        # print("records: ", records)
         # print("summary: ", summary)
         # print("keys: ", keys)
         return records
     
-    def get_author_number(self):
+    def count_all_authors(self):
         number = self.exec_query('MATCH (n:Author) RETURN count(n)')[0]['count(n)']
         print("number of authors: ", number)
         return number
     
-    def get_title_number(self):
+    def count_all_titles(self):
         number = self.exec_query('MATCH (n:Title) RETURN count(n)')[0]['count(n)']
         print("number of titles: ", number)
         return number
     
-    def get_all_nodes(self):
+    def count_all_nodes(self):
         nodes = self.exec_query('MATCH (n) RETURN COUNT(n)')
         print("nodes: ", nodes)
         return nodes
     
-    def get_all_relationships(self):
+    def count_all_relationships(self):
         relationships = self.exec_query('MATCH ()-[r]->() RETURN COUNT(r)')
         print("relationships: ", relationships)
         return relationships
 
-    def get_all_outline_num(self):
+    def count_all_outlines(self):
         outlines = self.exec_query('MATCH (o:Outline) RETURN COUNT(o)')
         print("outlines: ", outlines)
         return outlines
     
-    def get_all_embed_num(self):
+    def count_all_embeds(self):
         embeds = self.exec_query('MATCH (e:Embedding) RETURN COUNT(e)')
         print("embeds: ", embeds)
         return embeds
     
-    def get_all_keyword_num(self):
+    def count_all_keywords(self):
         keywords = self.exec_query('MATCH (k:Keyword) RETURN COUNT(k)')
         print("keywords: ", keywords)
         return keywords
@@ -151,6 +146,33 @@ class Neo4j_interface:
             embedding=embedding, title=title, database_='neo4j'
         )
 
+    def get_all_embeds(self):
+        query = """
+        MATCH (t:Title)-[:has_embedding]->(e:Embedding)
+        RETURN t.content AS title, e.content AS embedding
+        """
+
+        records = self.exec_query(query)
+        all_embeds = []
+        for record in records:
+            all_embeds.append((record['title'], record['embedding']))
+        return all_embeds
+    
+    def get_k_similar_papers(self, text, k=5):
+        target_embed = self.get_embedding(text)
+        all_embeds = self.get_all_embeds()
+
+        similarities = []
+
+        for title, embed in all_embeds:
+            if title == text:
+                continue
+            similarity = self.llm.calculate_similarity(target_embed, embed)
+            similarities.append((title, similarity))
+        
+        similarities.sort(key=lambda x: x[1], reverse=True)
+        return similarities[:k]
+
     def get_embedding(self, text: str):
         text = truncate_text_to_bytes(text)
         return self.llm.get_embedding(text)
@@ -228,10 +250,16 @@ if __name__ == '__main__':
     interface = Neo4j_interface()
     # interface.exec_query('MATCH (n) DETACH DELETE n')
     # interface.insert_document('paper/AceKG.tex')
-    interface.exec_query('MATCH (n) RETURN n')
+    # interface.exec_query('MATCH (n) RETURN n')
     # interface.exec_query(f"MATCH (n: Title) WHERE n.content = 'Regular Path Query Evaluation on Streaming Graphs' RETURN n")
 
-    text1 = "Find papers with title 'Regular Path Query Evaluation on Streaming Graphs'."
-    text2 = "Get papers with title Regular Path Query Evaluation on Streaming Graphs."
-    text3 = "Find papers that the title contain 'Query', 'Graph'."
+    # text1 = "Find papers with title 'Regular Path Query Evaluation on Streaming Graphs'."
+    # text2 = "Get papers with title Regular Path Query Evaluation on Streaming Graphs."
+    # text3 = "Find papers that the title contain 'Query', 'Graph'."
     # interface.text2cypher(text3)
+
+    k_papers = interface.get_k_similar_papers('I want to find something about Distributed Graph Database.')
+    titles = [title for title, _ in k_papers]
+    
+    for title in titles:
+        print(title)
