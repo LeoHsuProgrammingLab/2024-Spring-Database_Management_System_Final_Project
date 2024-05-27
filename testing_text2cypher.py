@@ -50,3 +50,24 @@ if __name__ == '__main__':
 
     for text in reference_texts:
         interface.cypher2text_reference(text)
+
+    authors_texts = [
+        "Find papers written by "
+    ]
+
+    authors_texts = [
+        "Find papers written by 'Fanjin Zhang'.",
+        "Find papers that Fanjin Zhang wrote",
+        "Find papers from Fanjin Zhang",
+        "find 'Fanjin Zhang' papers",
+        "find Fanjin Zhang papers",
+        "Fanjin Zhang papers",
+        "Fanjin Zhang's papers",
+        "Find Fanjin Zhang's paper",
+        "Get Fanjin Zhang paper",
+        "Fanjin Zhang",
+    ]
+
+    for text in authors_texts:
+        papers = interface.cypher2text_author(text)
+        print(papers)

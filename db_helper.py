@@ -308,46 +308,49 @@ class Neo4j_interface:
             papers.append(data['n.content'])
 
         return papers
+    
+    def cypher2text_author(self, text: str):
+        pattern1 = re.compile(r"(?:written by|published by)\s+[\'\"]?(.*?)(\.|\"|\'|$)")
+        pattern2 = re.compile(r"(?:papers that|papers from) [\'\"]?(.*?)[\'\"]?\s*(?:papers|writes|wrote|$)")
+        pattern3 = re.compile(r"(?:find|get)?\s*[\'\"]?(.*?)[\'\"]?\s*(?:papers|paper)", re.IGNORECASE)
+        match1 = re.search(pattern1, text)
+        match2 = re.search(pattern2, text)
+        match3 = re.search(pattern3, text)
+        if match1:
+            author = match1.group(1).lower()
+            records = self.exec_query(f"""MATCH (n: Author)-[r: publishes]->(m: Title) 
+                                          WHERE toLower(n.name) = \'{author}\' 
+                                          RETURN m.content""", printout=False)
+        elif match2:
+            author = match2.group(1).lower()
+            records = self.exec_query(f"""MATCH (n: Author)-[r: publishes]->(m: Title) 
+                                          WHERE toLower(n.name) = \'{author}\' 
+                                          RETURN m.content""", printout=False)
+        elif match3:
+            author = match3.group(1).lower()
+            author = author.replace("'s", '')
+
+            records = self.exec_query(f"""MATCH (n: Author)-[r: publishes]->(m: Title) 
+                                          WHERE toLower(n.name) = \'{author}\' 
+                                          RETURN m.content""", printout=False)
+        else:
+            author = text.lower()
+            records = self.exec_query(f"""MATCH (n: Author)-[r: publishes]->(m: Title) 
+                                          WHERE toLower(n.name) = \'{author}\' 
+                                          RETURN m.content""", printout=False)
+        
+        papers = []
+        for record in records:
+            data = record.data()
+            papers.append(data['m.content'])
+
+        return papers
 
 if __name__ == '__main__':
     interface = Neo4j_interface()
     # interface.exec_query('MATCH (n) DETACH DELETE n')
     # interface.insert_document('paper/AceKG.tex')
-    # interface.exec_query('MATCH (n: Author) RETURN n')
-    # interface.exec_query(f"MATCH (n: Title) WHERE n.content = 'Regular Path Query Evaluation on Streaming Graphs' RETURN n")
-
-    # text1 = "Find papers with title 'Regular Path Query Evaluation on Streaming Graphs'."
-    # text2 = "Get papers with title Regular Path Query Evaluation on Streaming Graphs."
-    # text3 = "Find papers that the title contain 'Query', 'Graph'."
-    # text4 = "Get papers with keywords 'Knowledgegraph'."
-    # text5 = "Get papers that are cited by Retrieval-Augmented Thought Process as Sequential Decision Making."
-    # text6 = "Get papers that references Retrieval-Augmented Thought Process as Sequential Decision Making."
-    # interface.text2cypher(text5)
-
-    # interface.exec_query("""MATCH (n: Title)-[r: references]->(m)
-    #                      WHERE toLower(n.content) CONTAINS 'decision'
-    #                      RETURN n.content LIMIT 5""")
-    # interface.exec_query('MATCH ()-[r: has_topic]->() RETURN r')
-    # interface.exec_query('MATCH (n: Title)-[r: referenced_by]->(m: Title) WHERE m.content = \'SemOpenAlex: The Scientific Landscape in 26 Billion RDF Triples\' RETURN .content')
-
-    reference_texts = [
-        "Find paper that references 'Regular Path Query Evaluation on Streaming Graphs'",
-        "Find paper that references 'Regular Path Query Evaluation on Streaming Graphs'.",
-        "Find paper references Regular Path Query Evaluation on Streaming Graphs.",
-        "Find paper that cites Regular Path Query Evaluation on Streaming Graphs.",
-        "Find papers that cite Regular Path Query Evaluation on Streaming Graphs.",
-        "Find papers that reference Regular Path Query Evaluation on Streaming Graphs.",
-        "Papers cites 'Regular Path Query Evaluation on Streaming Graphs'",
-        "Find papers 'SemOpenAlex: The Scientific Landscape in 26 Billion RDF Triples' cite",
-        "Find papers 'SemOpenAlex: The Scientific Landscape in 26 Billion RDF Triples' cites",
-        "Find papers cited by 'SemOpenAlex: The Scientific Landscape in 26 Billion RDF Triples'",
-        "Find papers referred by SemOpenAlex: The Scientific Landscape in 26 Billion RDF Triples.",
-    ]
-
-    for text in reference_texts:
-        interface.cypher2text_reference(text)
-
-
+    # interface.exec_query('MATCH (n: Author)-[r: publishes]->(m: Title) WHERE n.name = \'Fanjin Zhang\' RETURN m')
 
             
             
