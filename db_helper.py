@@ -1,17 +1,13 @@
 import dotenv, os
 from neo4j import GraphDatabase
-<<<<<<< HEAD
 import re
-
-=======
->>>>>>> fcf70eac477a1e0c9932d0181e09d59c8a4e8305
 from tex_helper import *
 import numpy as np
 from utils import *
 
 import sys
-sys.path.append('semantic_search/')
-from embed_extractor import LLM
+# sys.path.append('semantic_search/')
+from semantic_search.embed_extractor import LLM
 
 class Neo4j_interface:
     def __init__(self, conn_info='credential.txt'):
@@ -31,9 +27,11 @@ class Neo4j_interface:
     def close(self):
         self.driver.close()
 
-    def exec_query(self, query):
+    def exec_query(self, query, printout=True):
         records, summary, keys = self.driver.execute_query(query, database_="neo4j")
-        print("records: ", records)
+        
+        if printout:
+            print("records: ", records)
         # print("summary: ", summary)
         # print("keys: ", keys)
         return records
@@ -202,36 +200,103 @@ class Neo4j_interface:
         )
     
     def text2cypher(self, text: str):
-        if 'title' in text and 'contain' not in text:
-            # 限制只能是 ... title <title>
-            title = text.split('title ')[1]
-            title = title.replace('"', '')
-            title = title.replace("'", "")
-            title = title.replace(".", "")
-            query = f"MATCH (n: Title) WHERE TOLOWER(n.content) = TOLOWER('{title}') RETURN n"
-            result = self.exec_query(query)
-        elif 'contain' in text and 'keyword' not in text:
-            keywords = text.split('contain ')[1]
-            keywords = keywords.replace('"', '')
-            keywords = keywords.replace("'", "")
-            keywords = keywords.replace(".", "")
-            keywords = keywords.split(', ')
+        # Full title search
+        pattern1 = re.compile(r"(?:title|titled|name|named)\s+[\'\"]?(.*?)(\.|\"|\'|$)")
+        pattern2 = re.compile(r"(?:paper)\s+[\'\"]?(.*?)(\.|\"|\'|$)")
+        match1 = re.search(pattern1, text)
+        match2 = re.search(pattern2, text)
+        
+        if match1:
+            title = match1.group(1)
+        elif match2:
+            title = match2.group(1)
+        else:
+            title = ''
+        
+        if title:
+            title = title.lower()
+            query = f"MATCH (n: Title) WHERE toLower(n.content) CONTAINS '{title}' RETURN n"
+            records = self.exec_query(query, printout=False)
+            for record in records:
+                record = record.data()
+                title = record['n']['content']
+                return title
+        
+        # Keywords search
+        pattern3 = re.compile(r"(?:with|contain|contains|contained|include|includes|included)\s+(.*?)(\.|$)")
+        match3 = re.search(pattern3, text)
+        if match3:
+            keywords_str = match3.group(1)
+            keywords_str = keywords_str.replace('"', '')
+            keywords_str = keywords_str.replace("'", "")
+            keywords_str = keywords_str.lower()
+            pattern = r"\b(?:(?!and)\w+)\b"
+            keywords = re.findall(pattern, keywords_str)
+        else:
+            exclude_chars = [',', '.', '"', '\'']
+            for char in exclude_chars:
+                text = text.replace(char, '')
             
-            result = []
-            for keyword in keywords:
-                query = f"MATCH (n: Title) WHERE TOLOWER(n.content) CONTAINS TOLOWER('{keyword}') RETURN n"
-                result += self.exec_query(query)
-        elif 'keyword' in text:
-            pass
+            text = text.lower()
+            keywords = text.split()
+            exclude_chars = [
+                'and', 'or', 
+                'on', 'in', 'with', 'to',
+                'get', 'find', 'include', 'gets', 'finds', 'includes',
+                'title', 'name', 'paper'
+            ]                
+            for char in exclude_chars:
+                if char in keywords:
+                    keywords.remove(char)
+        
+        papers = {}
+        for keyword in keywords:
+            query = f"MATCH (n: Title) WHERE toLower(n.content) CONTAINS '{keyword}' RETURN n.content"
+            records = self.exec_query(query, printout=False)
+            for record in records:
+                record = record.data()
+                title = record['n.content']
+                if title not in papers:
+                    papers[title] = 1
+                else:
+                    papers[title] += 1
+
+            query = f"MATCH (n: Keyword) WHERE toLower(n.content) CONTAINS '{keyword}' RETURN n.content"
+            records = self.exec_query(query, printout=False)
+            for record in records:
+                record = record.data()
+                title = record['n.content']
+                if title not in papers:
+                    papers[title] = 1
+                else:
+                    papers[title] += 1
+
+        papers = [key for key, _ in sorted(papers.items(), key=lambda item: item[1], reverse=True)]
+        return papers
+        
 
 if __name__ == '__main__':
     interface = Neo4j_interface()
     # interface.exec_query('MATCH (n) DETACH DELETE n')
     # interface.insert_document('paper/AceKG.tex')
-    interface.exec_query('MATCH (n) RETURN n')
+    interface.exec_query('MATCH (n: Keyword) RETURN n LIMIT 2')
     # interface.exec_query(f"MATCH (n: Title) WHERE n.content = 'Regular Path Query Evaluation on Streaming Graphs' RETURN n")
 
-    text1 = "Find papers with title 'Regular Path Query Evaluation on Streaming Graphs'."
-    text2 = "Get papers with title Regular Path Query Evaluation on Streaming Graphs."
-    text3 = "Find papers that the title contain 'Query', 'Graph'."
-    # interface.text2cypher(text3)
+    # text1 = "Find papers with title 'Regular Path Query Evaluation on Streaming Graphs'."
+    # text2 = "Get papers with title Regular Path Query Evaluation on Streaming Graphs."
+    # text3 = "Find papers that the title contain 'Query', 'Graph'."
+    # text4 = "Get papers with keywords 'Knowledgegraph'."
+    # text5 = "Get papers that are cited by Retrieval-Augmented Thought Process as Sequential Decision Making."
+    # text6 = "Get papers that references Retrieval-Augmented Thought Process as Sequential Decision Making."
+    # interface.text2cypher(text5)
+
+    # interface.exec_query("""MATCH (n: Title)-[r: references]->(m)
+    #                      WHERE toLower(n.content) CONTAINS 'decision'
+    #                      RETURN n.content LIMIT 5""")
+    # interface.exec_query('MATCH ()-[r: has_topic]->() RETURN r')
+    # interface.exec_query('MATCH ()-[r: referenced_by]->() RETURN r')
+    
+    
+
+            
+            
