@@ -1,13 +1,25 @@
 import dotenv, os
+import importlib.util
+import subprocess
+import sys
 from neo4j import GraphDatabase
 import re
+import ast
 from tex_helper import *
 import numpy as np
+import time
 from utils import *
 
-import sys
+package_spec = importlib.util.find_spec('alive_progress')
+if package_spec is None:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", 'alive_progress'])
+
+from alive_progress import alive_bar 
+
 # sys.path.append('semantic_search/')
 from semantic_search.embed_extractor import LLM
+import google.generativeai as genai
+from google.api_core.exceptions import ResourceExhausted
 
 class Neo4j_interface:
     def __init__(self, conn_info='credential.txt'):
@@ -345,23 +357,144 @@ class Neo4j_interface:
             papers.append(data['m.content'])
 
         return papers
+    
+    # Find synonyms by categorizing directly
+    def find_synonyms_v1(self):
+        result = self.exec_query('Match (n: Keyword) return n.content', printout=False)
+        keywords = [record['n.content'] for record in result]
+
+        api_key = "AIzaSyD2fSZTFJZ0lfprVyM_S2KVml3EgEowqnQ"
+        genai.configure(api_key = api_key)
+
+        model = genai.GenerativeModel('gemini-pro')
+        text  = f"Find the synonym groups in {keywords}. " +\
+                "The meanings of the keywords in each group should be actually the same rather than just related or similar." +\
+                "Each group should contain at most 8 keywords." +\
+                "Please output with numbering list."
+        response = model.generate_content(text)
+
+        # Parse the following response
+        try:
+            lines = response.text.strip().split('\n')
+            lists = [ast.literal_eval(line.split('. ')[1]) for line in lines]
+        except ValueError:
+            print(f"Error in response {response}.")
+            lists = []
+
+        return lists
+    
+    # Find synonyms by comparing each pair of keywords
+    def find_synonyms_v2(self):
+        records = self.exec_query('Match (n: Keyword) return n.content', printout=False)
+        keywords = [record['n.content'] for record in records]
+
+        api_key = "AIzaSyD2fSZTFJZ0lfprVyM_S2KVml3EgEowqnQ"
+        genai.configure(api_key = api_key)
+        model = genai.GenerativeModel('gemini-pro')        
+    
+        synonyms = []
+        error_pairs = []
+        print(f"Comparing {len(keywords)} keywords.")
+        for i in range(len(keywords)):
+            with alive_bar(len(keywords)) as bar:
+                j = i
+                while j < len(keywords):
+                    if keywords[i] == keywords[j]:
+                        j += 1
+                        bar()
+                        continue
+
+                    print(f"> Keyword 02: {keywords[j]}")
+                    prompt = f"Are {keywords[i]} and {keywords[j]} synonyms? Only respond with 'yes' or 'no'."
+
+                    try:
+                        response = model.generate_content(prompt)
+                        if 'yes' in response.text.lower():
+                            synonyms.append((keywords[i], keywords[j]))
+                    except ResourceExhausted:
+                        print("Resources are exhausted.")
+                        time.sleep(30)
+                        j -= 1
+                    except ValueError:
+                        print(f"Error in response {response}.")
+                        time.sleep(5)
+                        error_pairs.append((keywords[i], keywords[j]))
+                    finally:
+                        j += 1
+                        bar()
+        
+        return synonyms, error_pairs
+
+    def find_subtopic(self):
+        records = self.exec_query(f"MATCH (n: Title)-[r: summarized_in]->(m: Outline) RETURN n.content, m.content", printout=False)
+        keywords = []
+        outlines = []
+        for i in range(len(records)):
+            title = records[i]['n.content']
+            outline = records[i]['m.content']
+            keyword_records = self.exec_query(f"MATCH (n: Title)-[r: has_topic]->(m: Keyword) WHERE n.content = '{title}' RETURN m.content", printout=False)
+            
+            keyword_records = [keyword['m.content'] for keyword in keyword_records]
+            for keyword in keyword_records:
+                keywords.append(keyword)
+                outlines.append(outline)
+        
+        api_key = "AIzaSyD2fSZTFJZ0lfprVyM_S2KVml3EgEowqnQ"
+        genai.configure(api_key = api_key)
+        model = genai.GenerativeModel('gemini-pro')
+
+        subtopics = {}
+        error_pairs = ""
+        for i, keyword1 in enumerate(keywords):
+            with alive_bar(len(keywords)) as bar:
+                j = 0
+                while j < len(keywords):
+                    keyword2 = keywords[j]
+                    if keyword1 == keyword2:
+                        j += 1
+                        bar()
+                        continue
+                    
+                    prompt = f"""
+                        Below are two keywords and the outlines they appear. Does the latter keyword the subtopic of the former keyword?
+                        Please respond with 'yes' or 'no'.
+
+                        Keyword 1: {keyword1}
+                        Outline 1: {outlines[i]}
+
+                        Keyword 2: {keyword2}
+                        Outline 2: {outlines[j]}
+                    """
+                    try:
+                        response = model.generate_content(prompt)
+                        if 'yes' in response.text.lower():
+                            if keyword1 not in subtopics:
+                                subtopics[keyword1] = []
+                            subtopics[keyword1].append(keyword2)
+                    except ResourceExhausted:
+                        print("Resources are exhausted.")
+                        time.sleep(30)
+                        j -= 1
+                    except ValueError:
+                        print(f"Error in response {response}.")
+                        time.sleep(10)
+                        error_pairs += prompt
+                    finally:
+                        j += 1
+                        bar()
+
+        return subtopics, error_pairs
 
 if __name__ == '__main__':
     interface = Neo4j_interface()
     # interface.exec_query('MATCH (n) DETACH DELETE n')
     # interface.insert_document('paper/AceKG.tex')
     # interface.exec_query('MATCH (n: Author)-[r: publishes]->(m: Title) WHERE n.name = \'Fanjin Zhang\' RETURN m')
-    interface.exec_query('Match (n: Title) return n.content')
+    # result = interface.exec_query('Match (n: Keyword) return n.content', printout=False)
+    # keywords = [record['n.content'] for record in result]
 
-    somepapers = [
-        'AceKG: A Large-scale Knowledge Graph for Academic Data Mining',
-        'An Overview of Microsoft Academic Service (MAS) and Applications',
-        'Smart Papers: Dynamic Publications on the Blockchain',
+    result, _ = interface.find_subtopic()
+    print(result)
 
-        "Find paper that references 'Regular Path Query Evaluation on Streaming Graphs'",
-        "Find papers 'SemOpenAlex: The Scientific Landscape in 26 Billion RDF Triples' cite"
-    
-        "Find papers written by 'Fanjin Zhang'."
-    ]
-            
+
             
