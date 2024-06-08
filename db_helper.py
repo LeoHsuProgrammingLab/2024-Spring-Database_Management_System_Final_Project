@@ -41,11 +41,6 @@ class Neo4j_interface:
 
     def exec_query(self, query, printout=True):
         records, summary, keys = self.driver.execute_query(query, database_="neo4j")
-        
-        if printout:
-            print("records: ", records)
-        # print("summary: ", summary)
-        # print("keys: ", keys)
         return records
     
     def get_author_number(self):

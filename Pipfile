@@ -6,6 +6,8 @@ name = "pypi"
 [packages]
 python-dotenv = "*"
 neo4j = "*"
+scikit-learn = "*"
+pandas = "*"
 
 [dev-packages]
 
