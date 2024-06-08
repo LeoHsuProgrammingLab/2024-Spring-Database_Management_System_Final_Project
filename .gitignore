@@ -2,6 +2,7 @@
 credential*
 papers
 __pycache__
+__pycache__/*
 .DS_Store
 paper
 Pipfile.lock
