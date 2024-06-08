@@ -380,10 +380,18 @@ if __name__ == '__main__':
     interface = Neo4j_interface()
     # interface.exec_query('MATCH (n) DETACH DELETE n')
     # interface.insert_document('paper/AceKG.tex')
-    # interface.exec_query('MATCH (n) RETURN n')
-    # interface.exec_query(f"MATCH (n: Title) WHERE n.content = 'Regular Path Query Evaluation on Streaming Graphs' RETURN n")
+    # interface.exec_query('MATCH (n: Author)-[r: publishes]->(m: Title) WHERE n.name = \'Fanjin Zhang\' RETURN m')
+    interface.exec_query('Match (n: Title) return n.content')
 
-    text1 = "Find papers with title 'Regular Path Query Evaluation on Streaming Graphs'."
-    text2 = "Get papers with title Regular Path Query Evaluation on Streaming Graphs."
-    text3 = "Find papers that the title contain 'Query', 'Graph'."
-    # interface.text2cypher(text3)
+    somepapers = [
+        'AceKG: A Large-scale Knowledge Graph for Academic Data Mining',
+        'An Overview of Microsoft Academic Service (MAS) and Applications',
+        'Smart Papers: Dynamic Publications on the Blockchain',
+
+        "Find paper that references 'Regular Path Query Evaluation on Streaming Graphs'",
+        "Find papers 'SemOpenAlex: The Scientific Landscape in 26 Billion RDF Triples' cite"
+    
+        "Find papers written by 'Fanjin Zhang'."
+    ]
+            
+            
