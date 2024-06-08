@@ -17,9 +17,9 @@ if package_spec is None:
 from alive_progress import alive_bar 
 
 # sys.path.append('semantic_search/')
-from semantic_search.embed_extractor import LLM
-import google.generativeai as genai
-from google.api_core.exceptions import ResourceExhausted
+# from semantic_search.embed_extractor import LLM
+# import google.generativeai as genai
+# from google.api_core.exceptions import ResourceExhausted
 
 class Neo4j_interface:
     def __init__(self, conn_info='credential.txt'):
@@ -31,7 +31,7 @@ class Neo4j_interface:
         AUTH = (os.getenv("NEO4J_USERNAME"), os.getenv("NEO4J_PASSWORD"))
         self.driver = GraphDatabase.driver(URI, auth=AUTH)
         self.driver.verify_connectivity()
-        self.llm = LLM()    
+        # self.llm = LLM()    
 
     def __del__(self):
         self.close()
@@ -42,6 +42,44 @@ class Neo4j_interface:
     def exec_query(self, query, printout=True):
         records, summary, keys = self.driver.execute_query(query, database_="neo4j")
         return records
+
+    def get_author_topics(self, author, f=2):
+        records = self.exec_query(f"""
+            MATCH (:Author {{name: '{author}'}})-[:publishes]->(d:Title)-[:has_topic]->(k:Keyword)
+            RETURN collect(k.content) AS keyword_list
+        """)
+        
+        frequency = dict()
+        for key in records[0]['keyword_list']:
+            if key in frequency:
+                frequency[key] += 1
+            else:
+                frequency[key] = 1
+        
+        topics = [key for key in frequency if frequency[key] >= f]
+        if len(topics) == 0:
+            return topics
+
+        for topic in topics:
+            query = f"""
+                MATCH (a:Author {{name: '{author}'}}), (k:Keyword {{content: '{topic}'}})
+                MERGE (a)-[s:studies]->(k)
+                SET s.degree={f}
+                MERGE (k)-[e:has_expert]->(a)
+                SET e.degree={f}
+            """
+        self.exec_query(query)
+
+        return topics
+
+    def get_same_area_authors(self, author):
+        records = self.exec_query(f"""
+            MATCH (:Author {{name: '{author}'}})-[:studies]->(:Keyword)-[:has_expert]->(a:Author)
+            WHERE a.name <> '{author}'
+            RETURN a.name as name
+        """)
+        authors = [record['name'] for record in records]
+        return authors
     
     def get_author_number(self):
         number = self.exec_query('MATCH (n:Author) RETURN count(n)')[0]['count(n)']
@@ -488,8 +526,13 @@ if __name__ == '__main__':
     # result = interface.exec_query('Match (n: Keyword) return n.content', printout=False)
     # keywords = [record['n.content'] for record in result]
 
-    result, _ = interface.find_subtopic()
-    print(result)
+    # records = interface.exec_query('MATCH (n:Author) RETURN n.name as name')
+    # for record in records:
+    #     interface.get_author_topics(record['name'])
+    interface.get_same_area_authors('Ramin Ghorbani')
+    # print(topics)
+    # result, _ = interface.find_subtopic()
+    # print(result)
 
 
             
