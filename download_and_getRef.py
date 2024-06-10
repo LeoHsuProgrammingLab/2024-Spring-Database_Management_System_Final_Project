@@ -26,21 +26,33 @@ replacements = {
 
 }
 
-def download_file(url, save_path):
-    if not os.path.exists(os.path.dirname(save_path)):
+def download_file(url, save_path, overwrite=True): 
+    if os.path.exists(save_path) and not overwrite:
+        print(f"file {save_path} already exists")
+        return False
+
+    try:
         response = requests.get(url)
+        response.raise_for_status()
         with open(save_path, 'wb') as file:
             file.write(response.content)
-    else:   
-        print("file already exists")
+        print(f"file {save_path} downloaded")
         return True
+    except requests.RequestException as e:
+        print(f"Failed to download file from {url}. Error: {e}")
+        return False
 
 def unzip_tar_gz(file_path, extract_path):
-    with tarfile.open(file_path, "r:gz") as tar:
-        tar.extractall(extract_path)
+    try:
+        with tarfile.open(file_path, "r:gz") as tar:
+            tar.extractall(extract_path)
+    except:
+        print("unzip error")
+        return False
 
 def remove_file(file_path):
-    os.remove(file_path)
+    if os.path.exists(file_path):
+        os.remove(file_path)
 
 def find_bib_files(folder_path):
     bib_files = []
@@ -158,10 +170,10 @@ def extract_reference(arxiv_id: str):
     files1 = find_bib_files(save_path)
     files2 = find_bbl_files(save_path)
     ref = []
-    if len(files1) > 0:
-        ref = find_bib_refs(files1)
-    elif len(files2) > 0:
+    if len(files2) > 0:
         ref = find_bbl_refs(files2)
+    elif len(files1) > 0:
+        ref = find_bib_refs(files1)
     return ref
 
 if __name__ == "__main__":

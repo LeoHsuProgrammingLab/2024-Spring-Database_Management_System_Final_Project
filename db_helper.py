@@ -3,6 +3,7 @@ import importlib.util
 import subprocess
 import sys
 from neo4j import GraphDatabase
+import re
 import ast
 from tex_helper import *
 import numpy as np
@@ -16,9 +17,7 @@ if package_spec is None:
 
 from alive_progress import alive_bar 
 
-# sys.path.append('semantic_search/')
-# from semantic_search.embed_extractor import LLM
-import google.generativeai as genai
+# import google.generativeai as genai
 # from google.api_core.exceptions import ResourceExhausted
 
 class Neo4j_interface:
@@ -31,7 +30,7 @@ class Neo4j_interface:
         AUTH = (os.getenv("NEO4J_USERNAME"), os.getenv("NEO4J_PASSWORD"))
         self.driver = GraphDatabase.driver(URI, auth=AUTH)
         self.driver.verify_connectivity()
-        # self.llm = LLM()    
+        self.llm = LLM()    
 
     def __del__(self):
         self.close()
@@ -81,47 +80,50 @@ class Neo4j_interface:
         authors = [record['name'] for record in records]
         return authors
     
-    def count_all_authors(self):
+    def get_author_num(self):
         number = self.exec_query('MATCH (n:Author) RETURN count(n)')[0]['count(n)']
         print("number of authors: ", number)
         return number
     
-    def count_all_titles(self):
+    def get_title_num(self):
         number = self.exec_query('MATCH (n:Title) RETURN count(n)')[0]['count(n)']
         print("number of titles: ", number)
         return number
     
-    def count_all_nodes(self):
-        nodes = self.exec_query('MATCH (n) RETURN COUNT(n)')
-        print("nodes: ", nodes)
-        return nodes
+    def get_all_nodes_num(self):
+        number = self.exec_query('MATCH (n) RETURN COUNT(n)')
+        print("nodes: ", number)
+        return number
     
-    def count_all_relationships(self):
-        relationships = self.exec_query('MATCH ()-[r]->() RETURN COUNT(r)')
-        print("relationships: ", relationships)
-        return relationships
+    def get_all_relationships_num(self):
+        number = self.exec_query('MATCH ()-[r]->() RETURN COUNT(r)')
+        print("relationships: ", number)
+        return number
 
-    def count_all_outlines(self):
+    def get_all_outline_num(self):
         outlines = self.exec_query('MATCH (o:Outline) RETURN COUNT(o)')
         print("outlines: ", outlines)
         return outlines
     
-    def count_all_embeds(self):
+    def get_all_embed_num(self):
         embeds = self.exec_query('MATCH (e:Embedding) RETURN COUNT(e)')
         print("embeds: ", embeds)
         return embeds
     
-    def count_all_keywords(self):
+    def get_all_keyword_num(self):
         keywords = self.exec_query('MATCH (k:Keyword) RETURN COUNT(k)')
         print("keywords: ", keywords)
         return keywords
 
-    def insert_a_paper(self, title, authors, abstract, content, references):
+    def insert_a_paper(self, title, arxiv_id, authors, abstract, content, references, keywords, embedding):
         # Construct parameter dictionary
         params = {
             "title": title,
+            "arxiv_id": arxiv_id,
             "outline": abstract,
             "content": content,
+            "embedding": embedding,
+            **{f"keyword_{i}": keyword for i, keyword in enumerate(keywords)},
             **{f"author_{i}": name for i, name in enumerate(authors)},
             **{f"reference_title_{i}": ref['title'] for i, ref in enumerate(references)}
             # **{f"author_ref_{i}_{j}": ref_author for i, ref in enumerate(references) for j, ref_author in enumerate(ref['authors'])}
@@ -130,6 +132,7 @@ class Neo4j_interface:
         # Initialize query parts
         merge_authors_and_link = ""
         merge_reference_and_link = ""
+        merge_keywords_and_link = ""
 
         # Merge authors and create relationships
         for i, author in enumerate(authors):
@@ -142,7 +145,7 @@ class Neo4j_interface:
         # Merge references and create relationships
         for i, ref in enumerate(references):
             merge_reference_and_link += f"""
-                MERGE (ref_{i}:Title {{content: $reference_title_{i}}})
+                MERGE (ref_{i}:Title {{name: $reference_title_{i}}})
                 CREATE (t)-[:references]->(ref_{i})
                 CREATE (ref_{i})-[:referenced_by]->(t)
             """
@@ -152,16 +155,24 @@ class Neo4j_interface:
             #         MERGE (:Title {{content: $reference_title_{i}}})-[:published_by]->(:Author {{name: $author_ref_{i}_{j}}})
             #     """
 
+        # Merge keywords and create relationships
+        for i, keyword in enumerate(keywords):
+            merge_keywords_and_link += f"""
+                MERGE (k_{i}:Keyword {{content: $keyword_{i}}})
+                CREATE (k_{i})-[:topic_of]->(t)
+                CREATE (t)-[:has_topic]->(k_{i})
+            """
+
         # Main query for inserting the paper and its components
         query = f"""
-            MERGE (t:Title {{content: $title}})
-            CREATE (o:Outline {{content: $outline}})
-            CREATE (t)-[:summarized_in]->(o)
-            CREATE (c:Content {{content: $content}})
-            CREATE (t)-[:consists_of]->(c)
-            CREATE (c)-[:part_of]->(t)
+            MERGE (t:Title {{name: $title}})
+            SET t.abstract = $outline,
+                t.arxiv_id = $arxiv_id,
+                t.content = $content,
+                t.embedding = $embedding
             {merge_authors_and_link}
             {merge_reference_and_link}
+            {merge_keywords_and_link}
         """
 
         print('start inserting a paper')
@@ -172,10 +183,23 @@ class Neo4j_interface:
         except Exception as e:
             print(f"An error occurred: {e}")
 
+    def create_vector_index(self, name='embedding'):
+        self.driver.execute_query(f"""
+            CREATE VECTOR INDEX {name} IF NOT EXISTS 
+            FOR (n: Title) 
+            ON (n.embedding)
+            OPTIONS {{
+                indexConfig: {{
+                    `vector.dimensions`: 1536, 
+                    `vector.similarity_function`: "COSINE"
+                }}
+            }}
+        """, database_='neo4j')
+
     def insert_keyword_of_a_paper(self, keywords, title):
         for keyword in keywords:
             self.driver.execute_query("""
-                MATCH (t:Title {content: $title})
+                MATCH (t:Title {name: $title})
                 MERGE (k:Keyword {content: $keyword})
                 CREATE (k)-[:topic_of]->(t)
                 CREATE (t)-[:has_topic]->(k)
@@ -187,48 +211,12 @@ class Neo4j_interface:
         self.driver.execute_query("""
             CREATE (e:Embedding {content: $embedding})
             WITH e
-            MATCH (t:Title {content: $title})
+            MATCH (t:Title {name: $title})
             CREATE (t)-[:has_embedding]->(e)
             CREATE (e)-[:embedding_of]->(t)
             """, 
             embedding=embedding, title=title, database_='neo4j'
         )
-
-    def get_all_embeds(self):
-        query = """
-        MATCH (t:Title)-[:has_embedding]->(e:Embedding)
-        RETURN t.content AS title, e.content AS embedding
-        """
-
-        records = self.exec_query(query)
-        all_embeds = []
-        for record in records:
-            all_embeds.append((record['title'], record['embedding']))
-        return all_embeds
-    
-    def get_k_similar_papers(self, text, k=5):
-        target_embed = self.get_embedding(text)
-        all_embeds = self.get_all_embeds()
-
-        similarities = []
-
-        for title, embed in all_embeds:
-            if title == text:
-                continue
-            similarity = self.llm.calculate_similarity(target_embed, embed)
-            similarities.append((title, similarity))
-        
-        similarities.sort(key=lambda x: x[1], reverse=True)
-        return similarities[:k]
-    
-    def get_abstract_from_title(self, title):
-        query = """
-        MATCH (t:Title {content: $title})-[:summarized_in]->(o:Outline)
-        RETURN o.content AS abstract
-        """
-        records = self.driver.execute_query(query, title=title, database_='neo4j')
-        # print(records)
-        # return records[0]['abstract']
 
     def get_embedding(self, text: str):
         text = truncate_text_to_bytes(text)
@@ -237,7 +225,7 @@ class Neo4j_interface:
     def get_keywords(self, abstract):
         return self.llm.get_keywords(abstract)
 
-    def insert_document(self, path):
+    def insert_document(self, path): # path to the .tex file, in a better defined format
         with open(path, 'r') as f:
             tex = f.read()
     
@@ -428,73 +416,73 @@ class Neo4j_interface:
         return papers
     
     # Find synonyms by categorizing directly
-    def find_synonyms_v1(self):
-        result = self.exec_query('Match (n: Keyword) return n.content', printout=False)
-        keywords = [record['n.content'] for record in result]
+    # def find_synonyms_v1(self):
+    #     result = self.exec_query('Match (n: Keyword) return n.content', printout=False)
+    #     keywords = [record['n.content'] for record in result]
 
-        api_key = "AIzaSyD2fSZTFJZ0lfprVyM_S2KVml3EgEowqnQ"
-        genai.configure(api_key = api_key)
+    #     api_key = "AIzaSyD2fSZTFJZ0lfprVyM_S2KVml3EgEowqnQ"
+    #     genai.configure(api_key = api_key)
 
-        model = genai.GenerativeModel('gemini-pro')
-        text  = f"Find the synonym groups in {keywords}. " +\
-                "The meanings of the keywords in each group should be actually the same rather than just related or similar." +\
-                "Each group should contain at most 8 keywords." +\
-                "Please output with numbering list."
-        response = model.generate_content(text)
+    #     model = genai.GenerativeModel('gemini-pro')
+    #     text  = f"Find the synonym groups in {keywords}. " +\
+    #             "The meanings of the keywords in each group should be actually the same rather than just related or similar." +\
+    #             "Each group should contain at most 8 keywords." +\
+    #             "Please output with numbering list."
+    #     response = model.generate_content(text)
 
-        # Parse the following response
-        try:
-            lines = response.text.strip().split('\n')
-            lists = [ast.literal_eval(line.split('. ')[1]) for line in lines]
-        except ValueError:
-            print(f"Error in response {response}.")
-            lists = []
+    #     # Parse the following response
+    #     try:
+    #         lines = response.text.strip().split('\n')
+    #         lists = [ast.literal_eval(line.split('. ')[1]) for line in lines]
+    #     except ValueError:
+    #         print(f"Error in response {response}.")
+    #         lists = []
 
-        return lists
+    #     return lists
     
     # Find synonyms by comparing each pair of keywords
-    def find_synonyms_v2(self):
-        records = self.exec_query('Match (n: Keyword) return n.content', printout=False)
-        keywords = [record['n.content'] for record in records]
+    # def find_synonyms_v2(self):
+    #     records = self.exec_query('Match (n: Keyword) return n.content', printout=False)
+    #     keywords = [record['n.content'] for record in records]
 
-        api_key = "AIzaSyD2fSZTFJZ0lfprVyM_S2KVml3EgEowqnQ"
-        genai.configure(api_key = api_key)
-        model = genai.GenerativeModel('gemini-pro')        
+    #     api_key = "AIzaSyD2fSZTFJZ0lfprVyM_S2KVml3EgEowqnQ"
+    #     genai.configure(api_key = api_key)
+    #     model = genai.GenerativeModel('gemini-pro')        
     
-        synonyms = []
-        error_pairs = []
-        print(f"Comparing {len(keywords)} keywords.")
-        for i in range(len(keywords)):
-            with alive_bar(len(keywords)) as bar:
-                j = i
-                while j < len(keywords):
-                    if keywords[i] == keywords[j]:
-                        j += 1
-                        bar()
-                        continue
+    #     synonyms = []
+    #     error_pairs = []
+    #     print(f"Comparing {len(keywords)} keywords.")
+    #     for i in range(len(keywords)):
+    #         with alive_bar(len(keywords)) as bar:
+    #             j = i
+    #             while j < len(keywords):
+    #                 if keywords[i] == keywords[j]:
+    #                     j += 1
+    #                     bar()
+    #                     continue
 
-                    print(f"> Keyword 02: {keywords[j]}")
-                    prompt = f"Are {keywords[i]} and {keywords[j]} synonyms? Only respond with 'yes' or 'no'."
+    #                 print(f"> Keyword 02: {keywords[j]}")
+    #                 prompt = f"Are {keywords[i]} and {keywords[j]} synonyms? Only respond with 'yes' or 'no'."
 
-                    try:
-                        response = model.generate_content(prompt)
-                        if 'yes' in response.text.lower():
-                            synonyms.append((keywords[i], keywords[j]))
-                    except ResourceExhausted:
-                        print("Resources are exhausted.")
-                        time.sleep(30)
-                        j -= 1
-                    except ValueError:
-                        print(f"Error in response {response}.")
-                        time.sleep(5)
-                        error_pairs.append((keywords[i], keywords[j]))
-                    finally:
-                        j += 1
-                        bar()
+    #                 try:
+    #                     response = model.generate_content(prompt)
+    #                     if 'yes' in response.text.lower():
+    #                         synonyms.append((keywords[i], keywords[j]))
+    #                 except ResourceExhausted:
+    #                     print("Resources are exhausted.")
+    #                     time.sleep(30)
+    #                     j -= 1
+    #                 except ValueError:
+    #                     print(f"Error in response {response}.")
+    #                     time.sleep(5)
+    #                     error_pairs.append((keywords[i], keywords[j]))
+    #                 finally:
+    #                     j += 1
+    #                     bar()
         
-        return synonyms, error_pairs
+    #     return synonyms, error_pairs
 
-    def find_subtopic(self):
+    # def find_subtopic(self):
         records = self.exec_query(f"MATCH (n: Title)-[r: summarized_in]->(m: Outline) RETURN n.content, m.content", printout=False)
         keywords = []
         outlines = []

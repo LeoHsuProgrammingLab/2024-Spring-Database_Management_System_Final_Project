@@ -5,23 +5,23 @@ from mmd_helper import *
 from arxiv_web_helper import *
 from tqdm.auto import tqdm
 import os
-import glob
-import shutil
 
 interface = Neo4j_interface(conn_info='credential.txt')
 
-def main():
-    papers = pd.read_csv('./paper/papers.csv')
-    arxiv_list = [id.split('/')[-1] for id in papers['Arxiv Link'].values]
+def main(reconstruct = False):
+    with open("data_log/all_arxiv_id_list.txt", "r") as f:
+        arxiv_list = f.read().splitlines()
 
     # Insert papers into database
 
-    # interface.exec_query('MATCH (n) DETACH DELETE n')
+    if reconstruct:
+        interface.exec_query('MATCH (n) DETACH DELETE n')
+
     no_paper = 0
     for i, arxiv_id in enumerate(tqdm(arxiv_list)):
         print(arxiv_id)
 
-        if i == 44:
+        if i == 117 or i < 106: # skip the paper that cannot be extracted
             continue
 
         title = extract_title(arxiv_id)
@@ -43,22 +43,15 @@ def main():
             content += conclusion
 
         if title == '' or authors == '' or abstract == '' or content == '' or reference == '':
+            print(title == '', authors == '', abstract == '', content == '', reference == '')
             no_paper += 1
             print(f"{no_paper} paper not found: ", arxiv_id)
             continue
-
-        interface.insert_a_paper(title, authors, abstract, content, reference)
+        
         embedding = interface.get_embedding(content)
-        interface.insert_embed_of_a_paper(embedding, title)
         keywords = interface.get_keywords(abstract)
-        interface.insert_keyword_of_a_paper(keywords, title)
+        interface.insert_a_paper(title, arxiv_id, authors, abstract, content, reference, keywords, embedding)
+        interface.create_vector_index()    
 
 if __name__ == '__main__':
     main()
-    interface.get_all_nodes()
-    interface.get_all_relationships()
-    interface.get_author_number()
-    interface.get_title_number()
-    interface.get_all_outline_num()
-    interface.get_all_keyword_num()
-    interface.get_all_embed_num()
