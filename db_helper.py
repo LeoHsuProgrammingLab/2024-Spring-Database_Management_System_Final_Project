@@ -205,6 +205,21 @@ class Neo4j_interface:
             }}
         """, database_='neo4j')
 
+    def get_k_similar_papers(self, text, k=5):
+        target_embed = self.get_embedding(text)
+        all_embeds = self.get_all_embeds()
+
+        similarities = []
+
+        for title, embed in all_embeds:
+            if title == text:
+                continue
+            similarity = self.llm.calculate_similarity(target_embed, embed)
+            similarities.append((title, similarity))
+        
+        similarities.sort(key=lambda x: x[1], reverse=True)
+        return similarities[:k]
+
     def insert_keyword_of_a_paper(self, keywords, title):
         for keyword in keywords:
             self.driver.execute_query("""
