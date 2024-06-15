@@ -115,6 +115,15 @@ class Neo4j_interface:
         print("keywords: ", keywords)
         return keywords
 
+    def search_k_similar(self, paper_title, k=5):
+        index_query = f"""
+            MATCH (t:Title {{name: '{paper_title}'}})
+            CALL db.index.vector.queryNodes('embedding', {k}, t.embedding) YIELD node, score
+            RETURN node.name, score
+        """
+        records = self.exec_query(index_query)
+        return records
+
     def insert_a_paper(self, title, arxiv_id, authors, abstract, content, references, keywords, embedding):
         # Construct parameter dictionary
         params = {
@@ -185,12 +194,12 @@ class Neo4j_interface:
 
     def create_vector_index(self, name='embedding'):
         self.driver.execute_query(f"""
-            CREATE VECTOR INDEX {name} IF NOT EXISTS 
+            CREATE VECTOR INDEX {name} IF NOT EXISTS
             FOR (n: Title) 
             ON (n.embedding)
             OPTIONS {{
                 indexConfig: {{
-                    `vector.dimensions`: 1536, 
+                    `vector.dimensions`: 768, 
                     `vector.similarity_function`: "COSINE"
                 }}
             }}

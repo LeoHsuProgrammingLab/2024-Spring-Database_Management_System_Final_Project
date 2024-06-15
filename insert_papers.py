@@ -12,11 +12,11 @@ def main(reconstruct = False):
     with open("data_log/all_arxiv_id_list.txt", "r") as f:
         arxiv_list = f.read().splitlines()
 
-    # Insert papers into database
-
+    # Check if need to reconstruct the database
     if reconstruct:
         interface.exec_query('MATCH (n) DETACH DELETE n')
 
+    # Insert papers into database
     no_paper = 0
     for i, arxiv_id in enumerate(tqdm(arxiv_list)):
         print(arxiv_id)
@@ -54,4 +54,4 @@ def main(reconstruct = False):
         interface.create_vector_index()    
 
 if __name__ == '__main__':
-    main()
+    main(reconstruct=False)
