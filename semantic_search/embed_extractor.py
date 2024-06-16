@@ -22,6 +22,10 @@ class LLM:
 
         self.model_type = model_type
 
+    def generate_content(self, prompt):
+        response = self.gen_model.generate_content(prompt)
+        return response
+
     def get_embedding(self, text):
         # model = genai.GenerativeModel('gemini-pro')
         response = genai.embed_content(model=self.model_type, content=text, task_type='semantic_similarity')
