@@ -74,7 +74,7 @@ def find_bib_refs(files):
     ref = []
     title = ''
     authors = []
-    # print("bib files: ",files)
+
     if len(files) > 0:
         for file in files:
             with open(file, 'r') as file:
@@ -195,6 +195,4 @@ if __name__ == "__main__":
     ref = extract_reference(target)
 
     print("ref count: ",len(ref))
-    print("ref list: ")
-    for i in ref:
-        print(i)
+    print("ref list: ", ref)

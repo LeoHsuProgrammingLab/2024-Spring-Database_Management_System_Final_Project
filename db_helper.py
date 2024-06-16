@@ -17,8 +17,7 @@ if package_spec is None:
 
 from alive_progress import alive_bar 
 
-# import google.generativeai as genai
-# from google.api_core.exceptions import ResourceExhausted
+from google.api_core.exceptions import ResourceExhausted
 
 class Neo4j_interface:
     def __init__(self, conn_info='credential.txt'):
@@ -115,14 +114,18 @@ class Neo4j_interface:
         print("keywords: ", keywords)
         return keywords
 
-    def search_k_similar(self, paper_title, k=5):
+    def search_k_similar(self, paper_title, k=5, including_self=True):
+        if including_self:
+            k += 1
+        # including self
         index_query = f"""
             MATCH (t:Title {{name: '{paper_title}'}})
             CALL db.index.vector.queryNodes('embedding', {k}, t.embedding) YIELD node, score
             RETURN node.name, score
         """
         records = self.exec_query(index_query)
-        return records
+        k_similar_papers = [(record['node.name'], record['score']) for record in records]
+        return k_similar_papers
 
     def insert_a_paper(self, title, arxiv_id, authors, abstract, content, references, keywords, embedding):
         # Construct parameter dictionary
@@ -208,13 +211,12 @@ class Neo4j_interface:
     def get_k_similar_papers(self, text, k=5):
         target_embed = self.get_embedding(text)
         all_embeds = self.get_all_embeds()
-
         similarities = []
 
         for title, embed in all_embeds:
-            if title == text:
+            if title == text or embed is None:
                 continue
-            similarity = self.llm.calculate_similarity(target_embed, embed)
+            similarity = self.llm.calculate_similarity_by_embedding(target_embed, embed)
             similarities.append((title, similarity))
         
         similarities.sort(key=lambda x: x[1], reverse=True)
@@ -246,8 +248,16 @@ class Neo4j_interface:
         text = truncate_text_to_bytes(text)
         return self.llm.get_embedding(text)
     
+    def get_all_embeds(self):
+        records = self.exec_query('MATCH (n:Title) RETURN n.embedding, n.name')
+        return [(record['n.name'], record['n.embedding']) for record in records]
+    
     def get_keywords(self, abstract):
         return self.llm.get_keywords(abstract)
+    
+    def k_means_clustering(self, title: str, k=5):
+        # using GDS k-means algorithm to find the papers in the same cluster as input title
+        pass
 
     def insert_document(self, path): # path to the .tex file, in a better defined format
         with open(path, 'r') as f:
@@ -292,6 +302,7 @@ class Neo4j_interface:
             database_='neo4j'
         )
     
+    # pattern matching actually becasue text2Cypher takes money
     def text2cypher(self, text: str):
         # Full title search
         pattern1 = re.compile(r"(?:title|titled|name|named)\s+[\'\"]?(.*?)(\.|\"|\'|$)")
@@ -440,73 +451,65 @@ class Neo4j_interface:
         return papers
     
     # Find synonyms by categorizing directly
-    # def find_synonyms_v1(self):
-    #     result = self.exec_query('Match (n: Keyword) return n.content', printout=False)
-    #     keywords = [record['n.content'] for record in result]
+    def find_synonyms_v1(self):
+        result = self.exec_query('Match (n: Keyword) return n.content', printout=False)
+        keywords = [record['n.content'] for record in result]
 
-    #     api_key = "AIzaSyD2fSZTFJZ0lfprVyM_S2KVml3EgEowqnQ"
-    #     genai.configure(api_key = api_key)
+        text  = f"Find the synonym groups in {keywords}. " +\
+                "The meanings of the keywords in each group should be actually the same rather than just related or similar." +\
+                "Each group should contain at most 8 keywords." +\
+                "Please output with numbering list."
+        response = self.llm.generate_content(text)
 
-    #     model = genai.GenerativeModel('gemini-pro')
-    #     text  = f"Find the synonym groups in {keywords}. " +\
-    #             "The meanings of the keywords in each group should be actually the same rather than just related or similar." +\
-    #             "Each group should contain at most 8 keywords." +\
-    #             "Please output with numbering list."
-    #     response = model.generate_content(text)
+        # Parse the following response
+        try:
+            lines = response.text.strip().split('\n')
+            lists = [ast.literal_eval(line.split('. ')[1]) for line in lines]
+        except ValueError:
+            print(f"Error in response {response}.")
+            lists = []
 
-    #     # Parse the following response
-    #     try:
-    #         lines = response.text.strip().split('\n')
-    #         lists = [ast.literal_eval(line.split('. ')[1]) for line in lines]
-    #     except ValueError:
-    #         print(f"Error in response {response}.")
-    #         lists = []
-
-    #     return lists
+        return lists
     
     # Find synonyms by comparing each pair of keywords
-    # def find_synonyms_v2(self):
-    #     records = self.exec_query('Match (n: Keyword) return n.content', printout=False)
-    #     keywords = [record['n.content'] for record in records]
-
-    #     api_key = "AIzaSyD2fSZTFJZ0lfprVyM_S2KVml3EgEowqnQ"
-    #     genai.configure(api_key = api_key)
-    #     model = genai.GenerativeModel('gemini-pro')        
+    def find_synonyms_v2(self):
+        records = self.exec_query('Match (n: Keyword) return n.content', printout=False)
+        keywords = [record['n.content'] for record in records]     
     
-    #     synonyms = []
-    #     error_pairs = []
-    #     print(f"Comparing {len(keywords)} keywords.")
-    #     for i in range(len(keywords)):
-    #         with alive_bar(len(keywords)) as bar:
-    #             j = i
-    #             while j < len(keywords):
-    #                 if keywords[i] == keywords[j]:
-    #                     j += 1
-    #                     bar()
-    #                     continue
+        synonyms = []
+        error_pairs = []
+        print(f"Comparing {len(keywords)} keywords.")
+        for i in range(len(keywords)):
+            with alive_bar(len(keywords)) as bar:
+                j = i
+                while j < len(keywords):
+                    if keywords[i] == keywords[j]:
+                        j += 1
+                        bar()
+                        continue
 
-    #                 print(f"> Keyword 02: {keywords[j]}")
-    #                 prompt = f"Are {keywords[i]} and {keywords[j]} synonyms? Only respond with 'yes' or 'no'."
+                    print(f"> Keyword 02: {keywords[j]}")
+                    prompt = f"Are {keywords[i]} and {keywords[j]} synonyms? Only respond with 'yes' or 'no'."
 
-    #                 try:
-    #                     response = model.generate_content(prompt)
-    #                     if 'yes' in response.text.lower():
-    #                         synonyms.append((keywords[i], keywords[j]))
-    #                 except ResourceExhausted:
-    #                     print("Resources are exhausted.")
-    #                     time.sleep(30)
-    #                     j -= 1
-    #                 except ValueError:
-    #                     print(f"Error in response {response}.")
-    #                     time.sleep(5)
-    #                     error_pairs.append((keywords[i], keywords[j]))
-    #                 finally:
-    #                     j += 1
-    #                     bar()
+                    try:
+                        response = self.llm.generate_content(prompt)
+                        if 'yes' in response.text.lower():
+                            synonyms.append((keywords[i], keywords[j]))
+                    except ResourceExhausted:
+                        print("Resources are exhausted.")
+                        time.sleep(30)
+                        j -= 1
+                    except ValueError:
+                        print(f"Error in response {response}.")
+                        time.sleep(5)
+                        error_pairs.append((keywords[i], keywords[j]))
+                    finally:
+                        j += 1
+                        bar()
         
-    #     return synonyms, error_pairs
+        return synonyms, error_pairs
 
-    # def find_subtopic(self):
+    def find_subtopic(self):
         records = self.exec_query(f"MATCH (n: Title)-[r: summarized_in]->(m: Outline) RETURN n.content, m.content", printout=False)
         keywords = []
         outlines = []
@@ -519,10 +522,6 @@ class Neo4j_interface:
             for keyword in keyword_records:
                 keywords.append(keyword)
                 outlines.append(outline)
-        
-        api_key = "AIzaSyD2fSZTFJZ0lfprVyM_S2KVml3EgEowqnQ"
-        genai.configure(api_key = api_key)
-        model = genai.GenerativeModel('gemini-pro')
 
         subtopics = {}
         error_pairs = ""
@@ -547,7 +546,7 @@ class Neo4j_interface:
                         Outline 2: {outlines[j]}
                     """
                     try:
-                        response = model.generate_content(prompt)
+                        response = self.llm.generate_content(prompt)
                         if 'yes' in response.text.lower():
                             if keyword1 not in subtopics:
                                 subtopics[keyword1] = []
