@@ -10,6 +10,8 @@ def fetch_papers_and_keywords():
     MATCH (p:Paper)-[:HAS_KEYWORD]->(k:Keyword)
     RETURN p.id AS paper_id, k.name AS keyword
     """
+    
+    driver = Neo4j_interface().driver   
     with driver.session() as session:
         result = session.run(query)
         data = [(record['paper_id'], record['keyword']) for record in result]
