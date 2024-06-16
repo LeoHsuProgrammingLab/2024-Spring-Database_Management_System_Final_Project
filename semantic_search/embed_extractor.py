@@ -27,12 +27,12 @@ class LLM:
         response = genai.embed_content(model=self.model_type, content=text, task_type='semantic_similarity')
         return response['embedding']
     
-    def get_similarity(self, text1, text2):
+    def get_similarity_by_text(self, text1, text2):
         embed1 = self.get_embedding(text1)
         embed2 = self.get_embedding(text2)
         return cosine_similarity([embed1], [embed2])[0][0]
     
-    def calculate_similarity(self, embed1: np.ndarray, embed2: np.ndarray):
+    def calculate_similarity_by_embedding(self, embed1: list, embed2: list):
         return cosine_similarity([embed1], [embed2])[0][0]
     
     def get_keywords(self, abstract):
@@ -90,5 +90,3 @@ if __name__ == "__main__":
 
     keywords = model.get_keywords(abstract)
     print(keywords)
-    # for model in genai.list_models():
-    #     pprint.pprint(model)
